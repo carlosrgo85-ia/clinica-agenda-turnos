@@ -1,0 +1,1908 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Una fila por clínica cliente de la plataforma. "Clínica" es el término
+/// genérico que usamos para cualquier negocio con turnos: dental, spa
+/// estético, u otro rubro similar. Lo que cambia entre rubros vive en
+/// campos de texto configurables (services, escalationCriteria,
+/// customerNoun), no en la estructura.
+model Clinic {
+  id        String   @id @default(cuid())
+  name      String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  whatsappPhoneNumberId String @unique
+
+  /// El WABA (WhatsApp Business Account) al que pertenece el número. En el
+  /// modelo multi-clínica cada clínica tiene el suyo, del que es dueña
+  /// —nosotros solo estamos autorizados—, y hace falta para todo lo que no
+  /// sea mandar un mensaje: crear y consultar las plantillas
+  /// (`POST /{waba-id}/message_templates`), suscribir la cuenta a nuestra
+  /// app, ver el estado del número.
+  ///
+  /// Nullable porque las clínicas cargadas a mano antes de esto no lo
+  /// tienen: sin él se pueden mandar mensajes igual, pero las plantillas
+  /// hay que crearlas a mano en el WhatsApp Manager de la clínica.
+  whatsappWabaId String?
+
+  /// Cifrado con AES-256-GCM (services/crypto.ts), igual que el refresh
+  /// token de Google. Es la credencial con la que se manda cualquier
+  /// mensaje en nombre de la clínica: en texto plano, un dump de la base o
+  /// un SELECT de más alcanzarían para escribirle a todos sus pacientes.
+  /// NUNCA sale por la API — ver `listAllClinics()` / `findClinicDetail()`.
+  whatsappTokenEncrypted String
+
+  email    String
+  timezone String @default("America/Argentina/Buenos_Aires")
+
+  // El horario de atención NO vive acá: es `WorkingHours`, dato
+  // estructurado, y de ahí sale tanto lo que se valida al agendar como el
+  // texto que el bot le cuenta al paciente (`describeWorkingHours()`). Hubo
+  // un `businessHours String` de texto libre para el prompt y se eliminó:
+  // los dos se desincronizaban y el bot anunciaba horarios que después el
+  // sistema rechazaba (o al revés).
+
+  services String // descripción libre para el prompt; el catálogo formal vive en Service
+
+  // Vocabulario configurable por rubro — "paciente" en una clínica dental,
+  // "cliente" en un spa estético, por ejemplo.
+  customerNoun String @default("paciente")
+
+  // Cómo le dice el asistente al paciente a lo que se agenda — "tratamiento" en
+  // una clínica dental, "servicio" en un spa. Solo es vocabulario del texto que
+  // lee el paciente: el catálogo (`Service`) y las claves internas no cambian.
+  serviceNoun String @default("servicio")
+
+  // Qué cuenta como escalamiento a humano en este rubro. Reemplaza reglas
+  // hardcodeadas tipo "dolor y sangrado" (dental) por texto configurable,
+  // para que un spa pueda describir sus propios criterios (reacción
+  // alérgica, quemadura, contraindicación, etc). Ver docs/onboarding-vertical.md.
+  escalationCriteria String @default("Cualquier situación que suene a una urgencia, una reacción adversa, o algo fuera de lo que el asistente puede resolver por texto.")
+
+  reminderTemplateName String @default("recordatorio_turno")
+
+  // Cuánto dura un turno cuando no se puede determinar de otra forma: la
+  // clínica no cargó catálogo de servicios, o el servicio que pidió el
+  // paciente no matchea ninguno. Configurable porque el default razonable
+  // cambia por rubro (un control dental son 30', una sesión de láser 15').
+  defaultAppointmentMinutes Int @default(30)
+
+  /// Con cuánta anticipación mínima se puede reservar, en minutos. Default: 60
+  /// (una hora). 0 = sin mínimo (solo se rechaza el pasado). Cada clínica puede
+  /// tener el suyo. Lo
+  /// aplican LOS TRES caminos que deciden un horario —ofrecerlo
+  /// (`availability-slots.ts`), agendarlo (`booking.ts`) y la Agenda editable
+  /// (`appointment-admin.ts`, como regla blanda)— a través de
+  /// `services/lead-time.ts`, para que no se ofrezca lo que después rebota.
+  /// Un CHECK de la migración impone 0 a 10080 (una semana).
+  minLeadMinutes Int @default(60)
+
+  // Calendario único de la clínica. Si está seteado, TODOS los turnos se
+  // espejan acá en vez de en el calendario personal de cada profesional —
+  // el caso de la clínica que quiere una sola agenda compartida donde ve a
+  // todo el equipo junto. Si es null, cada profesional usa su propio
+  // `Professional.googleCalendarId`. Ver services/calendar.ts →
+  // resolveCalendarIdForProfessional().
+  sharedCalendarId String?
+
+  // Con qué credencial se accede a `sharedCalendarId`. Si es null se cae a
+  // la cuenta de servicio de la plataforma (el modo viejo, que requiere que
+  // la clínica comparta el calendario a mano).
+  sharedCalendarAccountId String?
+  sharedCalendarAccount   GoogleAccount? @relation("ClinicSharedCalendarAccount", fields: [sharedCalendarAccountId], references: [id])
+
+  // De qué proveedor es `sharedCalendarId` (la columna se llama "shared" a
+  // secas: guarda el id del calendario en cualquiera). Con `microsoft` la
+  // credencial es `sharedCalendarMicrosoftAccount` y NO hay cuenta de
+  // servicio de respaldo: sin cuenta no hay espejo. Ver
+  // services/calendar.ts → resolveCalendarTargetForProfessional().
+  sharedCalendarProvider           CalendarProviderKind @default(google)
+  sharedCalendarMicrosoftAccountId String?
+  sharedCalendarMicrosoftAccount   MicrosoftAccount?    @relation("ClinicSharedMicrosoftAccount", fields: [sharedCalendarMicrosoftAccountId], references: [id])
+
+  // Qué funcionalidades tiene habilitadas esta clínica. Reemplaza los
+  // booleanos sueltos que había antes (depositEnabled, reminder2hEnabled,
+  // postVisitFollowUpEnabled) — ver `Plan.features` y
+  // `src/config/plan-features.ts`. `depositPercentage` se mantiene porque
+  // es un parámetro numérico, no un toggle.
+  planId            String?
+  plan              Plan?   @relation(fields: [planId], references: [id])
+  depositPercentage Int     @default(30)
+  /// Link al aviso de privacidad DE LA CLÍNICA (ella es la responsable de los datos de sus pacientes). El
+  /// asistente lo manda UNA vez, en el primer mensaje que le contesta a cada persona. Ver `services/privacy-notice.ts`.
+  privacyNoticeUrl  String?
+
+  // Teléfono de contacto público (distinto de `adminPhone`, que es interno
+  // para avisos de configuración), sitio web y dirección — contexto que
+  // el agente puede usar en la conversación.
+  contactPhone String?
+  website      String?
+  address      String?
+
+  // Link de la ficha de la clínica en Google (Maps / "share.google").
+  // Se usa para traer dirección, teléfono, sitio web y horario con
+  // `services/google-places.ts` — ver GET/POST
+  // `/platform/clinics/:id/google-business/preview`. Es una SUGERENCIA: el
+  // fetch nunca escribe en la clínica solo, el admin revisa y guarda con
+  // el mismo form de siempre (mismo criterio que los feriados: nunca
+  // confirmar sin elección explícita).
+  googleBusinessUrl String?
+
+  // Redes sociales, de referencia por ahora (solo el link/handle). Cuando
+  // se sumen los canales de Facebook/Instagram/TikTok, esto es lo que los
+  // identifica — sin credenciales ni tokens acá, eso se resuelve con la
+  // integración real de cada canal.
+  facebookUrl  String?
+  instagramUrl String?
+  tiktokUrl    String?
+
+  // Datos de facturación. Texto libre a propósito: el formato del
+  // identificador fiscal varía por país (CUIT en AR, RFC en MX) y no vale
+  // la pena validarlo acá.
+  billingLegalName String?
+  billingTaxId     String?
+  billingAddress   String?
+  billingEmail     String?
+
+  // Qué le cobra la plataforma a esta clínica. Es el **precio acordado**, no
+  // el de lista: el de lista vive en `PlanPrice` y se COPIA acá al fijarlo,
+  // así que cambiarlo después no mueve a ninguna clínica ya existente.
+  //
+  // `membershipPricing` en null es "sin membresía configurada", que es
+  // distinto de `exonerada`. Antes las dos cosas eran `membershipCost: null`
+  // y no había forma de distinguirlas — mismo problema que `SIN_HORARIO`.
+  //
+  // La moneda sí se repite acá, a diferencia de `PlanPrice`: se congela al
+  // fijar el precio. `Country.currency` se edita desde "Países" y
+  // `Clinic.country` puede cambiar; derivándola, un 15.000 pactado en ARS
+  // pasaría a leerse como MXN sin que nadie lo toque.
+  //
+  // Estas columnas NO se tocan desde `PUT /platform/clinics/:id` — tienen su
+  // propio endpoint, porque sus reglas son cruzadas (modalidad ↔ monto ↔
+  // motivo ↔ periodicidad ↔ país) y un rechazo acá no puede bloquear el
+  // guardado de la dirección.
+  //
+  // La coherencia entre ellas está impuesta además por un CHECK en la
+  // migración `precios_de_membresia`, que Prisma no sabe modelar:
+  //   ("membershipPricing" IS NULL AND "membershipCost" IS NULL) OR
+  //   ('exonerada' AND "membershipCost" IS NULL AND reason IS NOT NULL) OR
+  //   ('lista'|'especial' AND cost > 0 AND currency IS NOT NULL AND period IS NOT NULL)
+  membershipPricing       MembershipPricing?
+  membershipCost          Decimal?           @db.Decimal(12, 2)
+  membershipCurrency      String?
+  membershipBillingPeriod BillingPeriod?
+  /// Obligatorio en `especial` y `exonerada`: un precio distinto al de lista
+  /// sin explicación es indistinguible de un error de tipeo seis meses
+  /// después. Mismo criterio que `Resource.inactiveReason`.
+  membershipReason        String?
+  /// Cuándo se fijó, para poder avisar "la lista cambió después de esto".
+  membershipPricedAt      DateTime?
+
+  professionals      Professional[]          @relation("ClinicProfessionals")
+  // Con qué títulos trabaja esta clínica. Lo habilita el super-admin desde
+  // el detalle de la clínica: el selector de "Recursos" ofrece solo estos, y
+  // solo los activos. Vacío = los profesionales de esta clínica se cargan
+  // sin título.
+  professionalTitles ProfessionalTitle[]     @relation("ClinicProfessionalTitles")
+  // Las obras sociales / prepagas con las que trabaja, para que el agente
+  // pueda contestar "¿trabajan con OSDE?". La clínica administra su propia
+  // lista; el catálogo es de la plataforma.
+  insurers           ClinicInsurer[]
+  rooms              Room[]
+  resources          Resource[]
+  serviceCatalog     Service[]
+  patients           Patient[]
+  appointments       Appointment[]
+  packages           Package[]
+  escalations        Escalation[]
+  messages           ConversationMessage[]
+  pendingInbound     PendingInboundMessage[]
+  campaigns          Campaign[]
+  campaignLeads      CampaignLead[]
+  // País en ISO 3166-1 alpha-2 ("AR", "MX"). Se usa para sugerir los
+  // feriados nacionales — ver src/data/holidays.ts. Es explícito y no
+  // inferido de `timezone` porque la inferencia falla en países con varias
+  // zonas y en zonas que abarcan varios países; `suggestCountryFromTimezone()`
+  // solo lo propone al dar de alta.
+  country            String?
+
+  // Número de WhatsApp interno de la clínica (quien administra el sistema,
+  // no un paciente). Se usa para los avisos de configuración incompleta,
+  // que son más visibles que el email. Si es null, el aviso va solo por mail.
+  adminPhone String?
+
+  // A dónde avisar cuando el asistente escala una urgencia. Es distinto de
+  // `adminPhone`/`email`: un diente roto tiene que llegarle a quien está de
+  // guardia, no al que administra el sistema. Si el email queda en null se
+  // usa `email`; el teléfono todavía no se usa (ver escalationAlertTemplateName).
+  urgencyNotifyEmail String?
+  urgencyNotifyPhone String?
+
+  // Plantilla aprobada para los avisos de configuración. Los mensajes que
+  // inicia la clínica van SIEMPRE por plantilla (ver CLAUDE.md).
+  configAlertTemplateName String @default("aviso_configuracion")
+
+  // Última vez que se le avisó a la clínica que le falta cargar el horario
+  // de atención. Evita repetir el aviso si el proceso se reinicia o si hay
+  // más de una instancia corriendo el cron. Ver jobs/config-alerts.ts.
+  workingHoursAlertSentAt DateTime?
+
+  /// El último día (de la clínica) en que se mandó el mail de "citas por paquete
+  /// sin marcar". Evita repetirlo si el job corre cada hora, y se compara con el
+  /// día en `Clinic.timezone`, no con el del servidor. Solo se marca si el mail
+  /// salió: un SMTP caído a las 8 se reintenta a las 9.
+  packageReminderSentOn DateTime? @db.Date
+
+  /// Contactar por iniciativa de la clínica a los pacientes cuya próxima cita
+  /// sugerida se acerca (`jobs/next-visit-outreach.ts`). **Arranca apagado**: va
+  /// por una plantilla de WhatsApp que Meta tiene que aprobar en cada WABA, y
+  /// escribirle primero a alguien que no lo pidió es la forma más rápida de que
+  /// la clínica apague el bot. Lo prende el super-admin.
+  nextVisitOutreachEnabled  Boolean           @default(false)
+  /// Con cuántos días de anticipación a la fecha sugerida se le escribe. Un CHECK
+  /// de la migración impone 0 a 90.
+  nextVisitOutreachLeadDays Int               @default(14)
+  nextVisitTemplateName     String            @default("proximo_control")
+
+  /// Escribirle por iniciativa de la clínica a quienes llegaron por una campaña, preguntaron y no
+  /// agendaron (`jobs/campaign-followup.ts`). **Arranca apagado** por el mismo motivo que
+  /// `nextVisitOutreachEnabled`: va por una plantilla que Meta tiene que aprobar en cada WABA.
+  /// Cuántas veces y cada cuánto lo define cada campaña. Lo prende el super-admin.
+  campaignFollowUpEnabled   Boolean           @default(false)
+  packageTemplates          PackageTemplate[]
+
+  // Última vez que se le avisó que tiene feriados del año sin cargar.
+  // Separado del anterior porque son dos avisos distintos con cadencias
+  // distintas: el del horario es diario, el de feriados semanal.
+  holidayAlertSentAt DateTime?
+
+  calendarBlocks     CalendarBlock[]
+  googleAccounts     GoogleAccount[]     @relation("ClinicGoogleAccounts")
+  microsoftAccounts  MicrosoftAccount[]  @relation("ClinicMicrosoftAccounts")
+  workingHours       WorkingHours[]
+  scheduleExceptions ScheduleException[]
+  users              User[]
+  roles              Role[]
+  appointmentEvents  AppointmentEvent[]
+  agentRequests      AgentRequest[]
+  usageEvents        UsageEvent[]
+}
+
+enum BillingPeriod {
+  mensual
+  anual
+}
+
+/// Con qué criterio se le cobra a una clínica.
+///
+/// `null` en `Clinic.membershipPricing` significa "sin membresía configurada",
+/// y es un estado distinto de `exonerada`: antes las dos cosas eran un costo
+/// en null y no se podían distinguir.
+enum MembershipPricing {
+  /// Paga el precio de lista que regía cuando se le fijó (copiado, no leído).
+  lista
+  /// Precio negociado. Exige motivo.
+  especial
+  /// Convenio: no se le cobra. **Conserva su plan y sus funcionalidades** —
+  /// exonerar nunca toca `Clinic.planId`. Exige motivo.
+  exonerada
+}
+
+/// Un plan de la plataforma (ej. "Base", "Plus"). Reemplaza los booleanos
+/// sueltos que tenía `Clinic` para features Plus — el super-admin arma
+/// planes nuevos combinando funcionalidades del catálogo fijo en
+/// `src/config/plan-features.ts` (mismo criterio que `Country`/
+/// `HolidayRule`: catálogo editable desde una pantalla de plataforma, no
+/// hardcodeado en el código de negocio).
+model Plan {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  /// Los planes seedeados ("Base", "Plus") no se pueden borrar.
+  isSystem    Boolean  @default(false)
+  features    String[] @default([])
+  createdAt   DateTime @default(now())
+
+  clinics Clinic[]
+  prices  PlanPrice[]
+}
+
+/// Cuánto sale un plan en un país, por periodicidad.
+///
+/// **El plan es global y el precio es por país.** No se crean planes "Base
+/// Argentina" y "Base México": eso duplicaría el catálogo y las features
+/// derivarían entre sí. Un plan, N precios.
+///
+/// Es el precio de **lista**, o sea el de hoy para una clínica nueva. Al
+/// fijarle la membresía a una clínica se copia a `Clinic.membershipCost`, y
+/// desde ese momento son independientes: cambiar acá no mueve a nadie que ya
+/// esté. Eso es deliberado — un aumento no puede pisarle el precio a alguien
+/// con quien se negoció.
+///
+/// No lleva moneda: es el precio vigente, así que sale de `Country.currency`
+/// como ya manda el comentario de `Clinic`. Lo que sí congela la moneda es el
+/// acuerdo con cada clínica.
+///
+/// Sin `validFrom`/`validTo`: el "cada clínica conserva el suyo" se resuelve
+/// con la copia, y el "qué valía antes" con `MembershipPriceChange`.
+model PlanPrice {
+  id            String        @id @default(cuid())
+  planId        String
+  plan          Plan          @relation(fields: [planId], references: [id], onDelete: Cascade)
+  countryId     String
+  country       Country       @relation(fields: [countryId], references: [id])
+  billingPeriod BillingPeriod
+  /// Siempre > 0, impuesto además por un CHECK en la migración.
+  amount        Decimal       @db.Decimal(12, 2)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@unique([planId, countryId, billingPeriod])
+  @@index([countryId])
+}
+
+/// A qué se le cambió el precio: a la lista de un plan o a una clínica.
+enum MembershipPriceScope {
+  lista
+  clinica
+}
+
+/// Historial de cambios de precio, append-only.
+///
+/// Se escribe en la MISMA transacción que el cambio. Es la tabla más barata
+/// del diseño y la única imposible de rellenar después: el día 1 alguien
+/// pregunta por qué una clínica paga 2.500 y la de al lado 3.000, y sin esto
+/// no hay forma de saber quién lo decidió ni con qué argumento.
+model MembershipPriceChange {
+  id          String               @id @default(cuid())
+  scope       MembershipPriceScope
+  /// Cuál de los dos según `scope`. No son FK: el historial tiene que
+  /// sobrevivir al borrado de un precio de lista.
+  planPriceId String?
+  clinicId    String?
+
+  fromPricing MembershipPricing?
+  toPricing   MembershipPricing?
+  fromAmount  Decimal?           @db.Decimal(12, 2)
+  toAmount    Decimal?           @db.Decimal(12, 2)
+  fromPeriod  BillingPeriod?
+  toPeriod    BillingPeriod?
+  /// Congelada, por lo mismo que en `Clinic`: la moneda de un país se puede
+  /// editar, y una fila vieja no puede cambiar de significado sola.
+  currency    String?
+  reason      String?
+
+  changedById String?
+  changedBy   User?    @relation("MembershipPriceChangedBy", fields: [changedById], references: [id])
+  changedAt   DateTime @default(now())
+
+  @@index([clinicId, changedAt])
+  @@index([planPriceId, changedAt])
+}
+
+enum Weekday {
+  lunes
+  martes
+  miercoles
+  jueves
+  viernes
+  sabado
+  domingo
+}
+
+/// Un tramo de atención de un día de la semana.
+///
+/// Hay dos niveles y los dos tienen que permitir el turno para poder
+/// agendarlo (ver services/working-hours.ts):
+///
+/// - `professionalId` en null → horario de la CLÍNICA.
+/// - `professionalId` con valor → horario de ESE profesional.
+///
+/// Si un profesional no tiene NINGÚN tramo propio, hereda el de la clínica
+/// completo. La herencia es todo o nada, a propósito: si fuera por día, un
+/// profesional que define lunes a miércoles heredaría jueves y viernes de
+/// la clínica y lo agendarían en sus días libres. Tener al menos un tramo
+/// propio significa "este es mi horario completo".
+///
+/// **El horario de comida es el hueco entre dos tramos del mismo día.** Un
+/// lunes de 9 a 18 con corte de 13 a 14 son dos filas: 09:00–13:00 y
+/// 14:00–18:00. No hay un concepto separado de "descanso" porque no hace
+/// falta: modelarlo como hueco evita tener que definir qué pasa si un
+/// descanso cae fuera del horario o se solapa con dos tramos, y permite
+/// gratis el caso de la clínica que corta dos veces al día.
+///
+/// Un turno tiene que entrar completo DENTRO de un tramo. No puede empezar
+/// en uno y terminar en el siguiente — eso sería atender durante la comida.
+model WorkingHours {
+  id       String @id @default(cuid())
+  clinicId String
+  clinic   Clinic @relation(fields: [clinicId], references: [id])
+
+  professionalId String?
+  professional   Professional? @relation(fields: [professionalId], references: [id])
+
+  weekday Weekday
+
+  /// Minutos desde la medianoche, en hora local de la clínica
+  /// (`Clinic.timezone`). 540 = 09:00, 1080 = 18:00. Se guarda como entero
+  /// y no como texto ni DateTime porque lo único que se hace con esto es
+  /// comparar, y así la comparación es aritmética directa.
+  startMinute Int
+  endMinute   Int
+
+  @@index([clinicId, professionalId, weekday])
+}
+
+/// Excepción del horario para una FECHA puntual: un feriado, una jornada
+/// de capacitación, un día de media jornada.
+///
+/// `WorkingHours` es semanal y se repite siempre; esto es lo que permite
+/// decir "el 25 de diciembre no se atiende" sin tocar el horario habitual.
+///
+/// **Una excepción REEMPLAZA el horario semanal de esa fecha**, no lo
+/// recorta ni lo suma:
+///
+/// - Una fila con `startMinute`/`endMinute` en null → **cerrado todo el
+///   día**. Es el caso del feriado y del "ese día tenemos una actividad y
+///   no trabajamos".
+/// - Una o más filas con tramos → esos tramos son el horario de ESE día, en
+///   lugar del semanal. Sirve para media jornada, o para un día que se
+///   atiende en otro rango.
+///
+/// Modelar el feriado y el horario especial con el mismo concepto evita
+/// tener dos tablas que se contradicen, y hace que el chequeo sea el mismo
+/// (`fitsInSomeInterval`) que para el horario semanal.
+///
+/// `professionalId` en null afecta a TODA la clínica; con valor, solo a ese
+/// profesional (ej. se toma un día, o no viene a la jornada especial). La
+/// excepción de un profesional no cambia el horario de la clínica ni al
+/// revés: los dos niveles se evalúan por separado y los dos tienen que
+/// permitir el turno.
+model ScheduleException {
+  id       String @id @default(cuid())
+  clinicId String
+  clinic   Clinic @relation(fields: [clinicId], references: [id])
+
+  professionalId String?
+  professional   Professional? @relation(fields: [professionalId], references: [id])
+
+  /// La fecha afectada, en fecha LOCAL de la clínica. Se guarda como `Date`
+  /// (sin hora) y siempre se consulta con la medianoche UTC de ese día, para
+  /// que no se corra por zona horaria — ver `clinicDateKey()` en
+  /// services/time.ts.
+  date DateTime @db.Date
+
+  /// Por qué. Se muestra en el dashboard y en el reporte diario, y sirve
+  /// para que el bot pueda explicar por qué no hay turnos ese día.
+  reason String
+
+  /// null los dos = cerrado todo el día.
+  startMinute Int?
+  endMinute   Int?
+
+  createdAt DateTime @default(now())
+
+  @@index([clinicId, date])
+  @@index([clinicId, professionalId, date])
+}
+
+/// Una cuenta de Google que una clínica conectó por OAuth, para que la
+/// plataforma pueda leer y escribir en sus calendarios.
+///
+/// Reemplaza al modo viejo (una cuenta de servicio compartida, y la clínica
+/// tenía que compartirle cada calendario a mano y copiar y pegar el id).
+/// Con OAuth la clínica autoriza desde su propia cuenta y después elige el
+/// calendario de una lista. Los dos modos conviven: si un calendario no
+/// tiene `GoogleAccount` asociada, se usa la cuenta de servicio.
+///
+/// El `refreshToken` es una credencial de larga duración: da acceso a los
+/// calendarios de esa cuenta hasta que la revoquen. Se guarda cifrado con
+/// AES-256-GCM (ver services/crypto.ts); la clave está en
+/// `CALENDAR_TOKEN_ENCRYPTION_KEY` y NO en la base.
+model GoogleAccount {
+  id       String @id @default(cuid())
+  clinicId String
+  clinic   Clinic @relation("ClinicGoogleAccounts", fields: [clinicId], references: [id])
+
+  /// La cuenta de Google que autorizó (para mostrarla en la interfaz).
+  email String
+
+  /// Cifrados. Nunca se devuelven por la API del dashboard.
+  refreshTokenEncrypted String
+  accessTokenEncrypted  String?
+  accessTokenExpiresAt  DateTime?
+
+  /// Los scopes que efectivamente concedió. Si la clínica desmarca alguno
+  /// en la pantalla de consentimiento, acá se ve qué falta.
+  scope String
+
+  /// Se setea cuando Google rechaza el refresh token (la clínica revocó el
+  /// acceso, o cambió la contraseña). Una cuenta revocada no se usa y hay
+  /// que volver a pasar por el flujo de OAuth.
+  revokedAt DateTime?
+
+  /// Cuándo se le avisó a la clínica que hay que reconectar esta cuenta
+  /// (jobs/calendar-access-alerts.ts). Sirve para no repetir el aviso más de
+  /// una vez por día. Una reconexión lo borra, junto con `revokedAt`.
+  revokedAlertSentAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  professionals    Professional[]
+  sharedForClinics Clinic[]       @relation("ClinicSharedCalendarAccount")
+
+  @@unique([clinicId, email])
+  @@index([clinicId])
+}
+
+/// A qué sistema de agenda externo se espeja un calendario. Ver
+/// services/calendar-providers/.
+enum CalendarProviderKind {
+  google
+  microsoft
+}
+
+/// Cuenta de Microsoft 365 / Outlook que una clínica autorizó por OAuth.
+/// Mismo criterio que `GoogleAccount`: tokens cifrados, nunca se devuelven
+/// por la API, y `revokedAt` marca que hay que reconectar. A diferencia de
+/// Google, no existe un modo "cuenta de servicio": sin esta cuenta no se
+/// puede acceder al calendario.
+model MicrosoftAccount {
+  id       String @id @default(cuid())
+  clinicId String
+  clinic   Clinic @relation("ClinicMicrosoftAccounts", fields: [clinicId], references: [id])
+
+  /// La cuenta que autorizó (para mostrarla en la interfaz).
+  email String
+
+  /// Cifrados. Microsoft ROTA el refresh token en cada uso: siempre hay que
+  /// guardar el que devuelve el refresh.
+  refreshTokenEncrypted String
+  accessTokenEncrypted  String?
+  accessTokenExpiresAt  DateTime?
+
+  /// Los permisos que efectivamente concedió.
+  scope String
+
+  /// Se setea cuando Microsoft rechaza el refresh token (la clínica revocó el
+  /// acceso, cambió la contraseña o venció por inactividad).
+  revokedAt DateTime?
+
+  /// Cuándo se le avisó a la clínica que hay que reconectar esta cuenta
+  /// (jobs/calendar-access-alerts.ts). Sirve para no repetir el aviso más de
+  /// una vez por día. Una reconexión lo borra, junto con `revokedAt`.
+  revokedAlertSentAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  professionals    Professional[] @relation("ProfessionalMicrosoftAccount")
+  sharedForClinics Clinic[]       @relation("ClinicSharedMicrosoftAccount")
+
+  @@unique([clinicId, email])
+  @@index([clinicId])
+}
+
+/// Un profesional de la clínica (dentista, esteticista, kinesiólogo, etc).
+/// Tiene su propia agenda de Google para ver sus turnos personales, pero
+/// la disponibilidad real la calcula nuestra base — ver Appointment y
+/// services/availability.ts.
+model Professional {
+  id       String  @id @default(cuid())
+  clinicId String
+  clinic   Clinic  @relation("ClinicProfessionals", fields: [clinicId], references: [id])
+  name     String
+  active   Boolean @default(true)
+
+  // Cómo se lo llama antes del nombre: "Dr.", "Lic.", "Manicurista". Sale
+  // del catálogo (`ProfessionalTitle`) y no es texto libre: así dos fichas
+  // de la misma clínica no quedan una con "Dra." y otra con "Dra". Nullable
+  // porque no todas las clínicas usan título. Cuando está cargado se
+  // antepone al nombre en los mensajes que el bot le manda al paciente
+  // (availability-context.ts, appointments-context.ts).
+  //
+  // OJO: al traer un Professional para armarle un mensaje al paciente hay
+  // que incluir la relación `title`. Sin eso el nombre sale sin título y no
+  // falla nada — el mismo tipo de trampa que `googleAccount`.
+  titleId String?
+  title   ProfessionalTitle? @relation(fields: [titleId], references: [id])
+
+  // Calendario personal del profesional. Nullable a propósito: null = "sin
+  // calendario enlazado todavía", que es el estado inicial cuando se carga
+  // un profesional desde la interfaz y recién después se elige qué
+  // calendario conectar. También queda null si la clínica usa
+  // `Clinic.sharedCalendarId` para todo el equipo.
+  googleCalendarId String?
+
+  // Con qué credencial se accede a `googleCalendarId`. Null = cuenta de
+  // servicio de la plataforma (modo viejo).
+  googleAccountId String?
+  googleAccount   GoogleAccount? @relation(fields: [googleAccountId], references: [id])
+
+  // De qué proveedor es `googleCalendarId` (el nombre es de cuando solo
+  // existía Google: guarda el id del calendario en cualquiera). Con
+  // `microsoft` la credencial es `microsoftAccount`.
+  calendarProvider   CalendarProviderKind @default(google)
+  microsoftAccountId String?
+  microsoftAccount   MicrosoftAccount?    @relation("ProfessionalMicrosoftAccount", fields: [microsoftAccountId], references: [id])
+
+  // Si está en false, los bloqueos de este calendario NO se importan y por
+  // lo tanto no frenan turnos: el espejo sigue escribiendo los turnos, pero
+  // la agenda personal no condiciona la disponibilidad. Útil para un
+  // profesional que usa un calendario compartido o que no quiere que su
+  // agenda personal afecte lo que ofrece el bot.
+  blockSyncEnabled Boolean @default(true)
+
+  /// Los servicios que realiza. Sin ninguno, el profesional "no hace nada":
+  /// no se ofrece ni se le asigna. Por eso no se lo deja dar de alta ni
+  /// activar sin al menos uno.
+  services Service[] @relation("ProfessionalServices")
+
+  /// Las campañas que le suman a este profesional para su servicio aunque el catálogo no se lo asigne.
+  campaigns Campaign[] @relation("CampaignProfessionals")
+
+  // El espacio en el que trabaja habitualmente. Es una PREFERENCIA, no una
+  // restricción: si está ocupado a esa hora se le asigna otro libre y el
+  // turno queda marcado con `preferredRoomUnavailable`, para que se sepa por
+  // qué no le tocó el suyo. En null, se le asigna cualquiera disponible.
+  //
+  // Al ser preferencia y no restricción, NO cambia la disponibilidad: los
+  // mismos horarios se ofrecen y se aceptan que antes. Por eso el enumerador
+  // de huecos no la mira — solo la mira quien asigna el espacio.
+  preferredRoomId String?
+  preferredRoom   Room?   @relation("ProfessionalPreferredRoom", fields: [preferredRoomId], references: [id])
+
+  // Contacto del profesional, para avisarle cuando le asignan un turno.
+  // Distinto del calendario: el espejo en Google es pasivo —hay que mirarlo—
+  // y esto es un aviso que le llega.
+  //
+  // Los dos avisos son opcionales y están apagados por default: mandarle
+  // mensajes a alguien que no los pidió es la forma más rápida de que la
+  // clínica apague el bot entero.
+  contactEmail     String?
+  whatsappPhone    String?
+  notifyByEmail    Boolean @default(false)
+  // OJO: escribirle a alguien que no escribió primero exige una plantilla
+  // aprobada por Meta (`cita_asignada_profesional`). Mientras no esté
+  // aprobada en el WABA de la clínica, el envío falla y se loguea — el turno
+  // se crea igual. Mismo caso que `Clinic.urgencyNotifyPhone`.
+  notifyByWhatsapp Boolean @default(false)
+
+  appointments       Appointment[]
+  calendarBlocks     CalendarBlock[]
+  workingHours       WorkingHours[]
+  scheduleExceptions ScheduleException[]
+
+  @@index([clinicId])
+  @@index([titleId])
+}
+
+/// Una obra social, prepaga o aseguradora ("OSDE", "Swiss Medical", "GNP").
+///
+/// Catálogo **global de la plataforma**, por el mismo motivo que
+/// `ProfessionalTitle`: si cada clínica cargara el suyo, "OSDE" existiría
+/// escrito de tres formas distintas y no habría forma de mantener la lista.
+/// Lo administra el super-admin; cada clínica elige con cuáles trabaja.
+model Insurer {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  /// Del catálogo, no de una clínica: se desactiva cuando la aseguradora deja
+  /// de existir o de operar en el país.
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  clinics ClinicInsurer[]
+}
+
+/// Con qué aseguradoras trabaja una clínica.
+///
+/// Es un modelo explícito y no una relación N-N implícita porque el
+/// activo/inactivo vive en la RELACIÓN: la clínica deja de trabajar con una
+/// aseguradora sin que eso diga nada de la aseguradora ni de las otras
+/// clínicas. Se desactiva en vez de borrarse porque la interrupción suele ser
+/// temporal —se renegocia el convenio y vuelve—, y así no hay que buscarla de
+/// nuevo en el catálogo.
+model ClinicInsurer {
+  clinicId  String
+  insurerId String
+  clinic    Clinic   @relation(fields: [clinicId], references: [id])
+  insurer   Insurer  @relation(fields: [insurerId], references: [id])
+  /// Si está en false, el agente NO la menciona ni la confirma.
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@id([clinicId, insurerId])
+  @@index([insurerId])
+}
+
+/// Con qué se nombra a un profesional antes del nombre: "Dr.", "Dra.",
+/// "Lic.", "Psicóloga", "Manicurista", "Cosmetóloga".
+///
+/// Es un catálogo **global de la plataforma** y no de cada clínica: lo carga
+/// el super-admin una vez (pantalla "Títulos"), y después habilita clínica
+/// por clínica con cuáles trabaja cada una (`Clinic.professionalTitles`). Un
+/// spa y un consultorio odontológico comparten la tabla, pero no la lista
+/// habilitada — a un spa no se le ofrece "Dr." si nadie se lo habilitó.
+///
+/// La alternativa era una tabla por clínica, y se descartó: cada clínica
+/// habría cargado "Dra." por su cuenta, sin forma de que la plataforma
+/// mantenga una lista consistente.
+model ProfessionalTitle {
+  id        String   @id @default(cuid())
+  /// Único en toda la plataforma: dos filas "Dra." no se distinguen entre sí
+  /// y dejan al super-admin habilitando una y no la otra.
+  name      String   @unique
+  /// Se desactiva en vez de borrarse, igual que `Service` y `Resource`. Un
+  /// título inactivo no se ofrece en ningún selector, pero las fichas que ya
+  /// lo tienen lo siguen mostrando — y por eso NO se puede desactivar uno
+  /// que algún profesional tenga puesto (ver professional-titles.repository).
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  professionals Professional[]
+  /// Las clínicas que lo tienen habilitado.
+  clinics       Clinic[]       @relation("ClinicProfessionalTitles")
+}
+
+/// Tiempo en el que un profesional NO está disponible, importado desde su
+/// Google Calendar por jobs/calendar-sync.ts.
+///
+/// Existe porque los profesionales suelen manejar una sola agenda con lo
+/// personal y lo laboral junto. Un evento en ese calendario que no fue
+/// creado por nosotros (no tiene `appointmentId` en extendedProperties, ver
+/// services/calendar.ts) es tiempo ocupado, y el bot no tiene que agendar
+/// encima.
+///
+/// Esto NO viola la regla de "Google Calendar no decide disponibilidad":
+/// el calendario se lee en un job aparte y se copia acá, y
+/// services/availability.ts sigue consultando únicamente Postgres en el
+/// momento de decidir si un horario está libre.
+///
+/// A propósito no guardamos el título ni la descripción del evento: para
+/// frenar un turno y mostrarlo como "tiempo bloqueado" alcanza con el
+/// rango horario, y el título de un evento personal de un profesional no
+/// es información que esta plataforma necesite tener.
+/// De dónde viene un bloqueo de agenda. `calendario` se importa del calendario
+/// externo y el sync lo reemplaza entero; `manual` lo cargó una persona desde la
+/// Agenda de la aplicación y el sync NO lo toca.
+enum CalendarBlockSource {
+  calendario
+  manual
+}
+
+model CalendarBlock {
+  id             String       @id @default(cuid())
+  clinicId       String
+  clinic         Clinic       @relation(fields: [clinicId], references: [id])
+  professionalId String
+  professional   Professional @relation(fields: [professionalId], references: [id])
+
+  googleEventId String
+  startTime     DateTime
+  endTime       DateTime
+  isAllDay      Boolean  @default(false)
+  syncedAt      DateTime @updatedAt
+
+  source          CalendarBlockSource @default(calendario)
+  /// Solo los manuales: lo que escribió quien lo cargó ("Reunión", "Almuerzo").
+  /// Los importados NO guardan título: el de un evento personal no es algo que
+  /// la plataforma necesite tener.
+  title           String?
+  createdByUserId String?
+
+  // Un mismo evento de Google se importa una sola vez por profesional; el
+  // sync hace upsert sobre esta clave.
+  @@unique([professionalId, googleEventId])
+  @@index([clinicId, professionalId, startTime])
+}
+
+/// Un espacio físico (consultorio, sala de tratamiento, cabina). El límite
+/// real de turnos simultáneos, sin importar cuántos profesionales haya.
+model Room {
+  id       String  @id @default(cuid())
+  clinicId String
+  clinic   Clinic  @relation(fields: [clinicId], references: [id])
+  name     String
+  active   Boolean @default(true)
+
+  appointments Appointment[]
+  preferredBy  Professional[] @relation("ProfessionalPreferredRoom")
+
+  @@index([clinicId])
+}
+
+/// Un equipo compartido (láser, radiofrecuencia, etc). Modelado igual que
+/// Room: una fila por unidad física. `type` agrupa unidades intercambiables
+/// (ej. dos máquinas de láser distintas comparten type "laser_diodo") para
+/// que el chequeo de disponibilidad busque cualquier unidad libre de ese
+/// tipo, no una en particular.
+model Resource {
+  id       String  @id @default(cuid())
+  clinicId String
+  clinic   Clinic  @relation(fields: [clinicId], references: [id])
+  name     String // ej. "Láser diodo #1"
+  type     String // ej. "laser_diodo" — ver Service.requiredResourceType
+  active   Boolean @default(true)
+
+  // Por qué está fuera de servicio ("Motor dañado, en reparación"). Se pide
+  // al desactivarlo y se muestra en la pantalla: un equipo apagado sin
+  // explicación es indistinguible de uno apagado por error, y mientras tanto
+  // todos los servicios que dependen de él dejan de agendarse.
+  //
+  // También es lo que se le cuenta a quien tiene que resolver la derivación
+  // cuando un paciente pide justo ese servicio.
+  inactiveReason String?
+
+  appointments Appointment[]
+
+  @@index([clinicId, type])
+}
+
+/// Catálogo formal de servicios/tratamientos de la clínica. Independiente
+/// del texto libre `Clinic.services` (que es lo que lee Claude para
+/// conversar) — este catálogo es lo que usa la lógica de turnos para saber
+/// cuánto dura un servicio y si necesita un equipo específico.
+model Service {
+  id                   String  @id @default(cuid())
+  clinicId             String
+  clinic               Clinic  @relation(fields: [clinicId], references: [id])
+  name                 String
+  durationMinutes      Int
+  requiredResourceType String? // null si no necesita equipo específico
+  active               Boolean @default(true)
+
+  /// Lo que el asistente le puede decir al paciente sobre cuánto cuesta: texto
+  /// libre y de una línea ("$500", "Desde $500", "Sin costo si llega por redes").
+  /// Es texto y no un número a propósito: cubre rangos, cortesías y condiciones
+  /// sin modelar monedas ni descuentos. Null = no cargado: el asistente no
+  /// afirma ningún precio ni lo inventa.
+  priceNote String?
+
+  /// Qué profesionales lo realizan. No todos hacen todo: el agente solo ofrece
+  /// y asigna a los de esta lista (ver `services/service-professionals.ts`).
+  /// Un servicio activo sin ningún profesional no se puede dar a nadie, y se
+  /// avisa en `config-health`.
+  professionals Professional[] @relation("ProfessionalServices")
+
+  /// Es el diagnóstico / evaluación de primera vez: el paciente nuevo parte
+  /// siempre por este servicio, y como solo lo hace(n) el/los profesional(es)
+  /// asignado(s), la regla de "primera vez con el principal" sale de este
+  /// mismo dato. Si la clínica no marca ninguno, el paciente nuevo pide lo que
+  /// quiera.
+  firstVisit Boolean @default(false)
+
+  appointments     Appointment[]
+  /// Paquetes de sesiones de este servicio.
+  packages         Package[]
+  packageTemplates PackageTemplate[]
+  /// Las campañas cuya promoción es de este servicio.
+  campaigns        Campaign[]
+
+  @@index([clinicId])
+}
+
+enum PatientStage {
+  nuevo_contacto
+  interesado
+  turno_agendado
+  turno_confirmado
+  atendido
+  cancelado
+}
+
+/// Registro de CRM por cliente/paciente y por clínica.
+model Patient {
+  id        String       @id @default(cuid())
+  clinicId  String
+  clinic    Clinic       @relation(fields: [clinicId], references: [id])
+  phone     String
+  /// El nombre COMPLETO. Es el que usa todo el sistema (el asistente, los
+  /// avisos, la búsqueda, la detección de duplicados por nombre), así que sigue
+  /// siendo el dato canónico: cuando se edita el nombre y el apellido por
+  /// separado, se recalcula desde ellos (`services/patient-admin.ts`).
+  name      String?
+  /// Las partes, que se cargan desde el módulo de pacientes. Nullables: las
+  /// fichas que crea el asistente por WhatsApp solo traen el nombre completo, y
+  /// ahí se parte al leer (`patientNameParts()`), sin escribirlo.
+  firstName String?
+  lastName  String?
+  stage     PatientStage @default(nuevo_contacto)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  /// Lo que el personal quiere que quede dicho del paciente de forma
+  /// permanente (preferencias, indicaciones). Una sola nota que se edita; los
+  /// comentarios con fecha van en `PatientComment`.
+  /// **El asistente de WhatsApp la lee** (decidido el 2026-11-13) y por lo tanto
+  /// se envía a la API del modelo: ver "Pacientes" en CLAUDE.md.
+  observations String?
+
+  /// Cuándo conviene la próxima cita (un control en 6 meses, la siguiente
+  /// sesión). Es una SUGERENCIA para el equipo y para el proceso que contacta a
+  /// los pacientes, no una cita: no reserva nada ni bloquea ningún horario.
+  suggestedNextVisitDate  DateTime? @db.Date
+  /// Por qué o de qué ("control de ortodoncia"). Lo lee el asistente.
+  suggestedNextVisitNote  String?
+  /// La persona pidió que no la contactemos por iniciativa de la clínica. El
+  /// proceso de contacto lo respeta siempre.
+  outreachOptOut          Boolean   @default(false)
+  /// Cuándo se le mandó el mensaje por esta sugerencia. Se borra al cambiar la
+  /// fecha sugerida: es otra sugerencia y corresponde un mensaje nuevo.
+  nextVisitOutreachSentAt DateTime?
+
+  /// Otros WhatsApp autorizados a consultar y gestionar las citas de esta persona (un
+  /// familiar). Los carga el asistente al agendar para otra persona, o el personal.
+  /// Quien escribe desde uno de ellos la ve en "Personas de este WhatsApp", pero NO es su
+  /// titular: `phone` sigue siendo el número de la persona, al que van sus avisos.
+  authorizedPhones String[] @default([])
+
+  /// Ya era paciente de la clínica ANTES de usar la plataforma (se cargó con la
+  /// importación inicial). Cuenta como "no es de primera vez" aunque no tenga
+  /// ninguna cita acá: sin esto, a un paciente conocido se lo mandaría por el
+  /// servicio de primera vez. Ver `services/patient-import.ts`.
+  priorHistory     Boolean   @default(false)
+  /// Su última visita anterior a la plataforma, tal como la informó la clínica.
+  /// Informativa: no es una cita ni bloquea nada.
+  priorLastVisitOn DateTime? @db.Date
+  /// Lote de importación que lo creó (null = nació en la plataforma). Es lo que
+  /// permite deshacer una importación completa sin tocar a nadie más.
+  importBatchId    String?
+  /// Cuándo se le mandó por WhatsApp el link al aviso de privacidad de la clínica (en su SEGUNDO mensaje, no en el
+  /// primero). Se reclama antes de mandar (una sola vez por ficha titular de la conversación).
+  privacyNoticeSentAt DateTime?
+  /// Cuándo se le mandó, antes de la primera respuesta, la línea que dice que lo atiende un asistente virtual.
+  /// Una sola vez por ficha titular (reclamado antes de mandar). Ver `services/privacy-notice.ts`.
+  assistantIntroSentAt DateTime?
+
+  @@index([clinicId, importBatchId])
+
+  appointments Appointment[]
+  packages     Package[]
+  escalations  Escalation[]
+  comments     PatientComment[]
+
+  // A propósito NO es único: un mismo WhatsApp puede tener varias fichas
+  // (el titular, su papá, su hija). El paciente de un turno se resuelve por
+  // nombre entre las de ese número — ver repositories/patients.repository.ts.
+  @@index([clinicId, phone])
+}
+
+/// Un comentario con fecha del personal sobre un paciente (el historial de lo
+/// que se fue hablando, distinto de `Patient.observations`, que es una sola nota
+/// vigente). Se agrega y se puede borrar, pero no se edita: es un registro.
+///
+/// Sin relación con `Clinic` ni con `User` a propósito (ids planos): es
+/// auditoría, y borrar un usuario no tiene que tocar ni bloquearse por lo que
+/// escribió. `authorName` guarda el nombre al momento de escribirlo.
+/// **El asistente de WhatsApp lo lee**: ver "Pacientes" en CLAUDE.md.
+model PatientComment {
+  id           String   @id @default(cuid())
+  clinicId     String
+  patientId    String
+  patient      Patient  @relation(fields: [patientId], references: [id])
+  authorUserId String?
+  authorName   String
+  text         String
+  createdAt    DateTime @default(now())
+
+  @@index([patientId, createdAt])
+  @@index([clinicId])
+}
+
+/// El catálogo de paquetes que vende la clínica ("Láser piernas · 6 sesiones").
+/// Se define UNA vez y se le asigna a cada paciente: así no se arma un paquete
+/// nuevo, con su servicio y su cantidad, por cada persona.
+///
+/// **Asignar COPIA los valores** al `Package` del paciente (nombre, servicio,
+/// sesiones), igual que la membresía copia el precio de lista: editar o
+/// desactivar la plantilla no le cambia nada a quien ya lo tiene.
+model PackageTemplate {
+  id            String   @id @default(cuid())
+  clinicId      String
+  clinic        Clinic   @relation(fields: [clinicId], references: [id])
+  name          String
+  /// Obligatorio: sin servicio el paquete no tiene a qué citas aplicarse.
+  serviceId     String
+  service       Service  @relation(fields: [serviceId], references: [id])
+  totalSessions Int
+  active        Boolean  @default(true)
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  packages Package[]
+
+  @@unique([clinicId, name])
+  @@index([clinicId])
+}
+
+/// Paquete de sesiones prepagas (común en estética: "6 sesiones de láser").
+/// No existe en el caso dental, pero no molesta ahí — simplemente no se usa.
+///
+/// **La sesión se descuenta cuando UNA PERSONA marca la cita como atendida**
+/// (`Appointment.attendedAt`), no al agendar ni cuando el job de seguimiento
+/// pone la cita en "atendido" solo a las 24 horas: ese estado es automático y
+/// no prueba que el paciente haya ido. Ver `services/packages.ts`.
+///
+/// Un CHECK de la migración impone `0 <= usedSessions <= totalSessions` y
+/// `totalSessions > 0`.
+model Package {
+  id              String           @id @default(cuid())
+  clinicId        String
+  clinic          Clinic           @relation(fields: [clinicId], references: [id])
+  patientId       String
+  patient         Patient          @relation(fields: [patientId], references: [id])
+  /// Siempre presente, como `Appointment.service`: cuando hay `serviceId` es el
+  /// nombre del catálogo al momento de la compra.
+  serviceName     String
+  /// El servicio del catálogo. Al CREAR un paquete es obligatorio (se elige de la
+  /// lista de servicios de la clínica); sigue siendo nullable en la base solo por
+  /// los paquetes anteriores a esa regla. Con valor, el paquete solo se puede usar
+  /// en citas de ESE servicio; sin valor (heredado) sirve para cualquiera.
+  serviceId       String?
+  serviceCatalog  Service?         @relation(fields: [serviceId], references: [id])
+  totalSessions   Int
+  usedSessions    Int              @default(0)
+  purchasedAt     DateTime         @default(now())
+  /// Se apaga solo al usarse la última sesión (y se reactiva si se deshace).
+  active          Boolean          @default(true)
+  notes           String?
+  /// Id de `User`, sin relación: es auditoría.
+  createdByUserId String?
+  /// El nombre con el que se vendió ("Láser piernas · 6 sesiones"), copiado de la
+  /// plantilla. Null en los anteriores al catálogo: ahí se muestra `serviceName`.
+  name            String?
+  /// De qué plantilla del catálogo se asignó. Solo informativo: los valores ya
+  /// se copiaron. Null en los paquetes anteriores al catálogo.
+  templateId      String?
+  template        PackageTemplate? @relation(fields: [templateId], references: [id])
+
+  appointments Appointment[]
+
+  @@index([clinicId, patientId])
+  @@index([serviceId])
+}
+
+/// Un pedido del paciente que el asistente no puede resolver solo y derivó a
+/// una persona: una urgencia, una consulta que necesita criterio profesional,
+/// o alguien que pidió hablar con un humano.
+///
+/// Se guarda como fila y no solo se notifica por mail porque es lo único que
+/// garantiza que no se pierda: si el mail falla o nadie lo abre, el caso sigue
+/// estando y se puede listar y reclamar. El bot le PROMETE al paciente que
+/// alguien lo va a contactar, así que perderlo es la peor falla del sistema.
+model Escalation {
+  id       String @id @default(cuid())
+  clinicId String
+  clinic   Clinic @relation(fields: [clinicId], references: [id])
+
+  patientId String?
+  patient   Patient? @relation(fields: [patientId], references: [id])
+
+  /// Se guarda aparte del paciente porque es el dato con el que hay que
+  /// devolver el llamado, y tiene que seguir sirviendo si el paciente se borra.
+  patientPhone String
+  patientName  String?
+
+  reason         EscalationReason
+  /// El mensaje del paciente que disparó el escalamiento, textual.
+  patientMessage String
+  /// El resumen que arma `buildEscalationSummary()`, tal como se mandó por mail.
+  summary        String
+
+  /// Null = todavía nadie lo atendió. Es la cola de trabajo de la clínica.
+  resolvedAt DateTime?
+  resolvedBy String?
+
+  /// Si el aviso por mail salió. Un false con `resolvedAt` en null es un caso
+  /// que no le llegó a nadie y hay que ir a buscar a mano.
+  notifiedByEmail Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([clinicId, resolvedAt, createdAt])
+}
+
+enum EscalationReason {
+  urgencia
+  consulta_clinica
+  otro
+}
+
+enum AppointmentStatus {
+  confirmado
+  cancelado
+  atendido
+}
+
+/// Fuente de verdad de los turnos. Antes de crear un turno se valida acá
+/// mismo: profesional libre, espacio físico libre, y equipo libre si el
+/// servicio lo requiere. Google Calendar es un espejo, no una consulta.
+/// Por dónde entró una cita.
+enum AppointmentSource {
+  whatsapp
+  panel
+}
+
+model Appointment {
+  id                String             @id @default(cuid())
+  clinicId          String
+  clinic            Clinic             @relation(fields: [clinicId], references: [id])
+  patientId         String
+  patient           Patient            @relation(fields: [patientId], references: [id])
+  professionalId    String
+  professional      Professional       @relation(fields: [professionalId], references: [id])
+  roomId            String
+  room              Room               @relation(fields: [roomId], references: [id])
+  resourceId        String? // solo si el servicio requiere un equipo específico
+  resource          Resource?          @relation(fields: [resourceId], references: [id])
+  serviceId         String?
+  serviceCatalog    Service?           @relation(fields: [serviceId], references: [id])
+  packageId         String? // si el turno consume una sesión de un paquete prepago
+  package           Package?           @relation(fields: [packageId], references: [id])
+  /// La campaña por la que llegó quien sacó este turno (`services/campaigns.ts`). Null = no vino por
+  /// ninguna campaña o el turno es anterior al módulo.
+  campaignId        String?
+  campaign          Campaign?          @relation(fields: [campaignId], references: [id])
+  /// Cómo y cuándo se canceló. Null en las citas que no se cancelaron y en las
+  /// canceladas ANTES de que se registrara esto (2026-11-13): ahí no se sabe.
+  cancelledAt       DateTime?
+  /// "paciente" (por WhatsApp), "clinica" (desde el panel) o "reprogramacion" (se
+  /// dio de baja porque el paciente la movió a otra hora: NO es una cancelación
+  /// real, y los reportes la tienen que excluir).
+  cancelledByKind   String?
+  /// Id de `User`, sin relación (auditoría). Solo si canceló una persona.
+  cancelledByUserId String?
+  cancelReason      String?
+  /// Si esta cita nació de reagendar otra (por WhatsApp se cancela la vieja y se
+  /// crea una nueva): la vieja. Es el vínculo que permite contar las reagendadas.
+  rescheduledFromId String?
+  rescheduledFrom   Appointment?       @relation("Reschedule", fields: [rescheduledFromId], references: [id], onDelete: SetNull)
+  rescheduledTo     Appointment[]      @relation("Reschedule")
+  events            AppointmentEvent[]
+
+  /// Cuándo una PERSONA de la clínica confirmó que la cita se cumplió. Es lo que
+  /// descuenta la sesión del paquete. **No es lo mismo que `status: atendido`**:
+  /// ese lo pone solo el job de seguimiento a las 24 horas, y no prueba nada.
+  attendedAt       DateTime?
+  /// Cuándo se le mandó el recordatorio de 24 h / de 2 h por ESTA hora de cita. Es lo que evita el aviso
+  /// doble si el cron corre dos veces en la misma hora (un reinicio, o dos instancias del worker). Se
+  /// RECLAMA antes de mandar (UPDATE condicionado a null) y se libera si el envío falla. Al mover la cita
+  /// de hora se borran: es otro horario y corresponde un aviso nuevo.
+  reminder24SentAt DateTime?
+  reminder2hSentAt DateTime?
+  /// Id de `User`, sin relación (auditoría).
+  attendedByUserId String?
+  service          String // nombre del servicio en texto libre, siempre presente
+  startTime        DateTime
+  endTime          DateTime
+  status           AppointmentStatus @default(confirmado)
+  depositPaid      Boolean           @default(false)
+
+  // El profesional tenía un espacio preferido y estaba ocupado, así que se
+  // le asignó otro. Se guarda para poder explicarlo en la agenda: sin esto,
+  // ver al doctor en un consultorio que no es el suyo parece un error de
+  // carga y no lo que es — que el suyo ya estaba tomado.
+  preferredRoomUnavailable Boolean  @default(false)
+  googleEventId            String?
+  createdAt                DateTime @default(now())
+
+  /// Por dónde se creó. Las que carga una persona desde la Agenda pueden
+  /// saltarse reglas con una confirmación explícita; se deja constancia.
+  source           AppointmentSource @default(whatsapp)
+  /// Reglas que se forzaron al crear o editar desde la Agenda (por ejemplo
+  /// `profesional_ocupado`). Vacío = cumple todo.
+  forcedRules      String[]          @default([])
+  /// Ids de `User`, sin relación a propósito: es auditoría, y borrar un usuario
+  /// no tiene que tocar ni bloquearse por el historial de citas.
+  createdByUserId  String?
+  modifiedByUserId String?
+  modifiedAt       DateTime?
+
+  @@index([clinicId, professionalId, startTime])
+  @@index([clinicId, roomId, startTime])
+  @@index([clinicId, resourceId, startTime])
+  // Para isFirstTimePatient() (services/availability.ts): sin este índice,
+  // contar los turnos de un paciente escanea la tabla entera de todas las
+  // clínicas — es la única de las cinco queries del camino de reserva que
+  // no tenía filtro por clinicId Y encima no tenía ningún índice que la
+  // cubriera (las otras cuatro sí tenían el índice, solo les faltaba pasar
+  // clinicId en el where).
+  @@index([clinicId, patientId])
+  @@index([campaignId])
+}
+
+/// Usuario del sistema: quien inicia sesión en el dashboard. No tiene
+/// relación con Professional — Professional es un recurso agendable
+/// (dentista, esteticista) sin credenciales; User es quien opera el panel
+/// (recepción, admin de clínica, soporte de la plataforma).
+///
+/// `clinicId` nullable a propósito: null = super-admin de plataforma (ve y
+/// crea clínicas y sus admins); con valor = usuario de ESA clínica,
+/// gestionado únicamente por admins de esa misma clínica.
+model User {
+  id       String  @id @default(cuid())
+  clinicId String?
+  clinic   Clinic? @relation(fields: [clinicId], references: [id])
+
+  // Único a nivel de TODA la plataforma, no por clínica: el login recibe
+  // solo email+password, sin saber de antemano a qué clínica pertenece el
+  // usuario, así que la búsqueda tiene que ser global. Implica que una
+  // misma persona no puede tener dos cuentas con el mismo email en dos
+  // clínicas distintas.
+  email String @unique
+
+  // Nullable: un usuario recién invitado no tiene contraseña todavía. La
+  // establece siguiendo el link del email de invitación, que usa el mismo
+  // mecanismo que "olvidé mi contraseña" (ver PasswordResetToken). Login
+  // rechaza a un usuario con passwordHash null.
+  passwordHash String?
+
+  name      String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  roles                  UserRole[]
+  passwordResetTokens    PasswordResetToken[]
+  membershipPriceChanges MembershipPriceChange[] @relation("MembershipPriceChangedBy")
+
+  @@index([clinicId])
+}
+
+/// Rol/Perfil: conjunto nombrado de permisos que se asigna a uno o más
+/// usuarios. Determina qué opciones ve cada usuario dentro del dashboard.
+///
+/// `clinicId` nullable con el mismo criterio que User: null = rol de
+/// plataforma (ej. "Super Admin"); con valor = rol propio de ESA clínica.
+/// Los roles no se comparten entre clínicas, igual que pasa hoy con
+/// WorkingHours o Service.
+model Role {
+  id          String  @id @default(cuid())
+  clinicId    String?
+  clinic      Clinic? @relation(fields: [clinicId], references: [id])
+  name        String
+  description String?
+
+  // Roles seedeados (Super Admin, Admin de clínica) que no se pueden
+  // borrar desde la UI, para que ninguna clínica se quede sin nadie que
+  // pueda administrarla por error. Se puede seguir editando qué permisos
+  // tienen.
+  isSystem  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  permissions RolePermission[]
+  users       UserRole[]
+
+  @@unique([clinicId, name])
+  @@index([clinicId])
+}
+
+/// Catálogo fijo de acciones del sistema, seedeado desde
+/// src/config/permissions.ts. El `id` ES la clave que usan los middlewares
+/// y las rutas (ej. "usuarios.crear") — los admins arman roles combinando
+/// estos permisos, no pueden crear permisos nuevos desde la UI.
+model Permission {
+  id          String @id
+  description String
+  group       String // agrupador para la UI: "Usuarios", "Turnos", etc.
+
+  roles RolePermission[]
+}
+
+model RolePermission {
+  roleId       String
+  role         Role       @relation(fields: [roleId], references: [id])
+  permissionId String
+  permission   Permission @relation(fields: [permissionId], references: [id])
+
+  @@id([roleId, permissionId])
+}
+
+/// Un usuario puede tener uno o varios roles.
+model UserRole {
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+  roleId String
+  role   Role   @relation(fields: [roleId], references: [id])
+
+  @@id([userId, roleId])
+}
+
+/// Token de invitación ("elegí tu contraseña") o de recuperación
+/// ("olvidé mi contraseña") — mismo mecanismo para los dos casos. Se
+/// guarda el HASH del token, nunca en texto plano: si se filtra la tabla
+/// no alcanza para tomar control de ninguna cuenta.
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+/// Historial de conversación por paciente/cliente y por clínica.
+model ConversationMessage {
+  id           String   @id @default(cuid())
+  clinicId     String
+  clinic       Clinic   @relation(fields: [clinicId], references: [id])
+  patientPhone String
+  role         String // "patient" | "assistant"
+  content      String
+  createdAt    DateTime @default(now())
+
+  @@index([clinicId, patientPhone, createdAt])
+}
+
+/// Mensaje entrante de WhatsApp todavía sin contestar.
+///
+/// La gente manda una sola idea partida en varios mensajes ("Agendar la
+/// cita" / "Para mañana"). Contestando uno por uno el paciente recibe dos
+/// respuestas a una sola pregunta, y encima ninguna de las dos ve a la otra.
+/// Por eso los mensajes se acumulan acá y se contestan juntos cuando el
+/// paciente deja de escribir (ver `services/inbound-queue.ts`).
+///
+/// Está en Postgres y no en memoria del proceso porque el servidor web
+/// corre en N instancias: dos mensajes seguidos pueden caer en instancias
+/// distintas, y un temporizador local no vería el mensaje de la otra.
+///
+/// Las filas se BORRAN al contestarse — "pendiente" es simplemente que la
+/// fila exista, sin ningún flag que se pueda desincronizar. Las que quedan
+/// son las de un proceso que murió antes de contestar, y de esas se ocupa
+/// `jobs/inbound-sweeper.ts`.
+model PendingInboundMessage {
+  id           String   @id @default(cuid())
+  clinicId     String
+  clinic       Clinic   @relation(fields: [clinicId], references: [id])
+  patientPhone String
+  text         String
+  receivedAt   DateTime @default(now())
+
+  @@index([clinicId, patientPhone, receivedAt])
+  // Para el barrido de huérfanos, que busca por antigüedad entre todas las
+  // clínicas y no tiene por dónde filtrar antes.
+  @@index([receivedAt])
+}
+
+/// País habilitado para sugerir feriados nacionales. `id` es el código
+/// ISO 3166-1 alpha-2 ("AR", "MX", "VE") — el mismo valor que ya usa
+/// `Clinic.country` y el mismo criterio que `Permission.id`: un
+/// identificador legible en vez de un cuid.
+///
+/// Reemplaza al `HOLIDAYS_BY_COUNTRY` que antes vivía hardcodeado en
+/// `src/data/holidays.ts` — agregar un país ahora es una fila acá (desde
+/// la pantalla de plataforma "Países"), no un cambio de código.
+///
+/// `active: false` lo saca de `supportedCountries()` sin borrar sus
+/// reglas — una clínica que ya lo tenía configurado no se rompe, pero deja
+/// de ofrecerse como opción nueva.
+model Country {
+  id        String   @id
+  name      String
+  /// ISO 4217 (ej. "ARS", "MXN") — en qué moneda se le muestra a la
+  /// clínica el costo de su membresía (`Clinic.membershipCost`).
+  currency  String
+  /// Zonas horarias IANA válidas para clínicas de este país (ej.
+  /// "America/Mexico_City", "America/Tijuana"). Un país puede tener más
+  /// de una — de acá sale el selector de `Clinic.timezone` en las
+  /// pantallas de plataforma "Clínicas", en vez de un campo de texto
+  /// libre donde un typo rompe la validación de turnos.
+  timezones String[] @default([])
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  holidayRules HolidayRule[]
+  planPrices   PlanPrice[]
+}
+
+enum HolidayRuleKind {
+  fixed
+  nthWeekday
+  easter
+}
+
+/// Una regla del catálogo de feriados de un país. Los campos que no
+/// aplican al `kind` quedan en null — mismo criterio que
+/// `ScheduleException` (columnas opcionales según el caso, en vez de una
+/// tabla por tipo de regla). Ver `services/holidays.ts` → `resolveRule()`
+/// para cómo se resuelve cada `kind` a una fecha concreta de un año.
+model HolidayRule {
+  id        String          @id @default(cuid())
+  countryId String
+  country   Country         @relation(fields: [countryId], references: [id])
+  name      String
+  kind      HolidayRuleKind
+
+  /// kind = fixed | nthWeekday. 1-12.
+  month Int?
+
+  /// kind = fixed.
+  day Int?
+
+  /// kind = nthWeekday. 0 domingo … 6 sábado.
+  weekday Int?
+  /// kind = nthWeekday. 1 = primero del mes, 2 = segundo, etc.
+  ordinal Int?
+
+  /// kind = easter. Offset en días respecto al Domingo de Resurrección
+  /// (Viernes Santo = -2, Lunes de Carnaval = -48).
+  offsetDays Int?
+
+  createdAt DateTime @default(now())
+
+  @@index([countryId])
+}
+
+/// Un secreto de la plataforma: cuándo vence y, opcionalmente, su valor.
+/// Hoy solo el de la app de Microsoft (Entra ID): Microsoft los hace vencer y,
+/// cuando pasa, ninguna clínica puede conectar ni refrescar su cuenta de
+/// Outlook hasta generar uno nuevo. Ver config/tracked-secrets.ts.
+///
+/// Las dos mitades son independientes: se puede seguir un vencimiento sin
+/// guardar el valor (queda en el `.env`) y guardar el valor sin seguir su
+/// vencimiento. La fila se borra cuando no queda ninguna de las dos.
+model PlatformSecret {
+  /// Una de las claves de `TRACKED_SECRETS`; el catálogo vive en el código.
+  key String @id
+
+  /// El día que vence, tal cual lo muestra el proveedor. Null = no se sigue.
+  expiresOn DateTime? @db.Date
+
+  note String?
+
+  /// El valor, CIFRADO con AES-256-GCM (services/crypto.ts), con la misma
+  /// clave que los tokens de OAuth. Si hay uno, manda sobre la variable del
+  /// `.env`: así se renueva desde la pantalla sin reiniciar ningún proceso.
+  /// Nunca sale de la base por la API; lo descifra solo
+  /// `services/platform-secrets.ts` → `getPlatformSecretValue()`.
+  valueEncrypted String?
+
+  /// El último día que se mandó el recordatorio. Evita repetirlo si el
+  /// worker corre más de una vez en el mismo día, y se borra al registrar
+  /// una fecha nueva (se renovó el secreto).
+  lastReminderOn DateTime? @db.Date
+
+  updatedAt DateTime @updatedAt
+}
+
+/// La app de OAuth de la PLATAFORMA con la que las clínicas conectan su cuenta
+/// (hoy solo Google). Es una sola para todas las clínicas, y vive en la base y
+/// no en el `.env` para poder cargarla o rotarla desde la pantalla de
+/// plataforma sin reiniciar el servidor web ni el worker.
+///
+/// `clientId` y `redirectUri` no son secretos; el secreto va CIFRADO
+/// (AES-256-GCM, services/crypto.ts) y nunca sale de la base por la API: lo
+/// descifra solo `services/google-oauth-config.ts`.
+///
+/// Si hay una fila, manda ENTERA sobre las variables GOOGLE_OAUTH_* del
+/// `.env` (que quedan de respaldo): mezclar campos de las dos fuentes podría
+/// armar un cliente con el id de una app y el secreto de otra.
+model PlatformOAuthApp {
+  /// "google". Un proveedor más es una fila más.
+  provider String @id
+
+  clientId              String
+  redirectUri           String
+  clientSecretEncrypted String
+
+  updatedAt DateTime @updatedAt
+}
+
+/// Algo que salió mal y que, sin esta tabla, solo quedaba en una línea de log
+/// que nadie lee: la llamada al modelo que falló, un mensaje que no se pudo
+/// procesar, un cron que tiró una excepción, un WhatsApp que Meta rechazó. Es
+/// lo que lee la pantalla "Monitoreo" del super-admin.
+///
+/// **No tiene relación con `Clinic` a propósito**: es un registro técnico, no
+/// un dato de la clínica, y no puede impedir borrarla ni borrarse con ella.
+/// **No lleva teléfonos, nombres ni el texto de los mensajes**: solo la
+/// clínica, el tipo y el error — minimización de datos, como en el resto de la
+/// plataforma. Lo que se necesite saber del paciente está en la derivación.
+///
+/// Se limpia solo (`jobs/system-events-cleanup.ts`): es para ver qué anda mal
+/// ahora, no un archivo histórico.
+model SystemEvent {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  /// Qué pasó, como clave estable (`SYSTEM_EVENT_KINDS` en
+  /// services/system-events.ts). Texto y no enum para sumar tipos sin migrar.
+  kind     String
+  /// "error" | "warning". Un error es algo que dejó a alguien sin servicio.
+  severity String @default("error")
+
+  /// La clínica afectada, si se sabe. Null = de la plataforma entera.
+  clinicId String?
+
+  /// El mensaje del error, recortado.
+  message String
+
+  @@index([createdAt])
+  @@index([clinicId, createdAt])
+  @@index([kind, createdAt])
+}
+
+/// Cuándo corrió por última vez cada tarea programada del worker. Es lo que
+/// permite ver que el worker está apagado, que hoy es una falla silenciosa:
+/// si nadie lo mira, nadie recibe recordatorios y no hay ningún error en
+/// ningún lado.
+model CronHeartbeat {
+  /// El nombre de la tarea (`jobs/tracked-cron.ts`).
+  jobName String @id
+
+  lastStartedAt  DateTime
+  /// Null mientras la primera corrida no terminó.
+  lastFinishedAt DateTime?
+
+  /// El error de la última corrida, o null si salió bien. Se borra cuando una
+  /// corrida posterior termina sin errores.
+  lastError   String?
+  lastErrorAt DateTime?
+
+  updatedAt DateTime @updatedAt
+}
+
+/// Lo que le pasó a una cita a lo largo de su vida: es la fuente de los reportes de
+/// citas canceladas, reagendadas y atendidas. **Se escribe en la misma transacción
+/// que el cambio**, así que no puede haber un cambio sin su evento.
+///
+/// Tipos: `creada` (una reserva nueva; reagendar NO cuenta como crear),
+/// `reagendada` (cambió la hora o el profesional), `editada` (cambió otra cosa: el
+/// espacio, el servicio, la duración), `cancelada` (una cancelación REAL; mover la
+/// cita a otra hora no es cancelar), `atendida` y `desmarcada` (una persona
+/// confirmó, o deshizo, la asistencia).
+///
+/// Se borra con la cita o la clínica (CASCADE): en producción las citas no se
+/// borran, se cancelan. Lo anterior al 2026-11-13 no tiene eventos.
+model AppointmentEvent {
+  id            String      @id @default(cuid())
+  clinicId      String
+  clinic        Clinic      @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  appointmentId String
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  type       String
+  occurredAt DateTime @default(now())
+
+  /// Quién lo hizo: `paciente` (por WhatsApp), `usuario` (desde el panel) o
+  /// `sistema` (un job, por ejemplo el que da por atendida una cita a las 24 horas).
+  actorKind   String
+  /// Id de `User`, sin relación (auditoría). Solo si `actorKind` es `usuario`.
+  actorUserId String?
+
+  /// Por qué (el motivo de una cancelación).
+  reason String?
+
+  /// Para `reagendada`: de dónde a dónde.
+  fromStartTime        DateTime?
+  toStartTime          DateTime?
+  fromProfessionalId   String?
+  toProfessionalId     String?
+  /// Para `reagendada` por WhatsApp (la cita nueva): la cita vieja.
+  relatedAppointmentId String?
+
+  /// Datos extra sin columna propia (qué campos cambió una edición, `automatica` en
+  /// una asistencia que dio el sistema). Nunca valores clínicos ni de contacto.
+  details Json?
+
+  @@index([clinicId, type, occurredAt])
+  @@index([appointmentId, occurredAt])
+}
+
+/// El registro de auditoría de TODA la aplicación: quién hizo qué, cuándo, sobre qué
+/// y con qué resultado. **Solo se agrega**: nada lo edita ni lo borra (un trigger de
+/// la base lo impide, ver la migración `audit_log`).
+///
+/// Una fila por operación que modifica algo (POST, PUT, PATCH y DELETE de la API) y
+/// por la lectura de datos sensibles (la ficha de un paciente, las conversaciones,
+/// la propia auditoría), más el login y el logout. Lo escribe el middleware
+/// `middleware/audit.ts`, así que una ruta nueva queda cubierta sin acordarse.
+///
+/// **Nunca guarda valores de lo que se escribió**: solo los NOMBRES de los campos
+/// que cambiaron. Una observación clínica, un token o una contraseña no pueden
+/// terminar en un registro que se conserva por años. Lo estructurado y no sensible
+/// (el motivo de una cancelación, los permisos de un rol) va en `details`.
+///
+/// Sin relación con `Clinic` ni con `User` (ids planos): tiene que sobrevivir a que se
+/// borre cualquiera de los dos. `userEmail` y `userName` son una copia al momento.
+model AuditLog {
+  id         String   @id @default(cuid())
+  occurredAt DateTime @default(now())
+
+  /// Quién. Null si no se sabía (un intento sin sesión). En un login fallido,
+  /// `userEmail` es el que se intentó.
+  userId    String?
+  userEmail String?
+  userName  String?
+
+  /// Sobre qué clínica. Null = de la plataforma (o no se sabía).
+  clinicId String?
+
+  /// Desde dónde se originó: `panel` (una persona desde la aplicación web, la API),
+  /// `whatsapp` (el asistente, por un mensaje del paciente) o `sistema` (un job). Es lo que
+  /// permite registrar también lo que NO hace un usuario del panel y que no pasa por el
+  /// middleware: el alta de un paciente por WhatsApp, los cambios de etapa del CRM.
+  origin String?
+
+  /// Una clave semántica (`auth.login`, `appointment.cancel`) o, si la ruta no la
+  /// puso, `METHOD patrón-de-la-ruta`.
+  action       String
+  method       String?
+  /// El patrón de la ruta (`/dashboard/clinics/:clinicId/patients/:patientId`), sin
+  /// ids ni query string: así no se cuelan datos personales en la URL.
+  route        String?
+  resourceType String?
+  resourceId   String?
+
+  /// `ok`, `denegado` (401, 403 y 429) o `error` (cualquier otro 4xx o 5xx).
+  outcome    String
+  statusCode Int?
+
+  ip        String?
+  userAgent String?
+
+  details Json?
+
+  @@index([occurredAt])
+  @@index([clinicId, occurredAt])
+  @@index([userId, occurredAt])
+  @@index([action, occurredAt])
+  @@index([resourceType, resourceId])
+  @@index([origin, occurredAt])
+}
+
+/// Cada solicitud que se le manda al agente (la llamada al modelo de IA): qué se pidió,
+/// cuánto tardó, cuánto costó, cómo terminó y qué decidió. Es el rastro de lo que hace el
+/// asistente, para calidad, costos y para poder reconstruir por qué contestó lo que contestó.
+///
+/// **No guarda el texto**: ni el prompt (lleva el historial y las notas del paciente), ni el
+/// mensaje del paciente, ni la respuesta, ni nombres. Eso ya está donde corresponde
+/// (`ConversationMessage`) y duplicarlo en otra tabla sería multiplicar los datos sensibles.
+/// Guarda metadatos, el tamaño del prompt y la DECISIÓN estructurada del modelo (la
+/// intención y los flags), que es lo que se audita.
+///
+/// Se borra con la clínica (CASCADE) y con la limpieza periódica
+/// (`AGENT_REQUEST_RETENTION_DAYS` en `services/agent-requests.ts`).
+model AgentRequest {
+  id         String   @id @default(cuid())
+  occurredAt DateTime @default(now())
+
+  clinicId  String
+  clinic    Clinic  @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  /// El titular de la conversación. Sin relación: es un rastro, no un dato de la ficha.
+  patientId String?
+
+  /// Agrupa las llamadas que salieron de UN mismo mensaje entrante (la primera, el
+  /// reintento, la segunda con los horarios, la explicación de un fallo de reserva).
+  turnId  String
+  /// `interpretacion`, `reinterpretacion` (con los horarios reales a la vista) o
+  /// `explicacion_fallo` (redactar por qué falló una reserva).
+  kind    String
+  /// 1 la primera vez; 2 si fue el reintento tras una falla.
+  attempt Int    @default(1)
+
+  model               String
+  latencyMs           Int
+  inputTokens         Int?
+  outputTokens        Int?
+  cacheReadTokens     Int?
+  cacheCreationTokens Int?
+  stopReason          String?
+  /// Tamaño del prompt armado, en caracteres: sirve para ver cuándo se infla.
+  promptChars         Int?
+
+  /// `ok`, `sin_texto` (el modelo no devolvió texto), `no_interpretable` (devolvió algo
+  /// que no se pudo leer) o `error` (la llamada falló).
+  outcome      String
+  errorMessage String?
+
+  /// La intención que devolvió, para poder filtrar sin abrir el JSON.
+  intent   String?
+  /// Lo que DECIDIÓ el modelo, sin nombres ni textos: intención, servicio, fecha, hora,
+  /// profesional pedido, flags (escalar, confirmar, ubicación…) y el id de la cita.
+  decision Json?
+
+  /// Cuánto costó esta llamada en USD, CONGELADO al registrarla con la tarifa vigente
+  /// (`CostRate`): un cambio de tarifa no reescribe el pasado. Null = no había tarifa
+  /// cargada (la pantalla de Costos lo muestra como "sin tarifa", nunca como cero).
+  costUsd Decimal? @db.Decimal(16, 8)
+
+  @@index([clinicId, occurredAt])
+  @@index([turnId])
+  @@index([outcome, occurredAt])
+}
+
+// --- Campañas y promociones ---
+
+enum CampaignTriggerKind {
+  /// Una frase que viene en el mensaje del paciente (el texto prellenado del link, del QR, del flyer).
+  texto
+  /// El id de un anuncio "Click-to-WhatsApp" de Meta (`referral.source_id` del webhook).
+  anuncio
+  /// Solo en `CampaignLead.triggerKind`, nunca en un `CampaignTrigger`: no hay un formato que coincidiera, sino que el
+  /// ASISTENTE reconoció, por lo que dijo la persona ("vengo por la promo de implantes"), a qué campaña vigente se refería.
+  asistente
+}
+
+enum CampaignLeadStatus {
+  abierto
+  convertido
+  cerrado
+}
+
+/// Una campaña o promoción: de dónde llegan los mensajes, qué se promociona y con quién se atiende.
+/// **No se borra, se desactiva**: los contactos y las citas la referencian.
+model Campaign {
+  id       String @id @default(cuid())
+  clinicId String
+  clinic   Clinic @relation(fields: [clinicId], references: [id])
+
+  name String
+  /// De dónde viene ("Instagram", "Flyer", "Radio"): texto libre para agrupar en el reporte.
+  channel String?
+  /// Qué es la promoción, tal como se la puede contar el asistente. Solo lo que figura acá: no inventa
+  /// precios ni condiciones.
+  description String?
+
+  active   Boolean   @default(true)
+  /// Vigencia, en fecha LOCAL de la clínica. Fuera de la vigencia el contacto igual se atribuye (la gente
+  /// usa un flyer viejo), pero el asistente no ofrece la promoción.
+  startsOn DateTime? @db.Date
+  endsOn   DateTime? @db.Date
+
+  /// El servicio de la promoción. Ya tiene sus profesionales en el catálogo. **Obligatorio para una campaña activa**
+  /// (lo valida `services/campaigns.ts`): es lo que le dice al asistente qué ofrecer y con quién agendar. Sigue siendo
+  /// nullable en la base solo por las campañas anteriores a esa regla.
+  serviceId String?
+  service   Service? @relation(fields: [serviceId], references: [id])
+  /// Profesionales que, SOLO para esta campaña, pueden dar ese servicio aunque el catálogo no se lo
+  /// asigne (se suman a los del servicio, no los reemplazan).
+  extraProfessionals Professional[] @relation("CampaignProfessionals")
+
+  /// Seguimiento de quienes preguntaron y no agendaron. Un CHECK de la migración impone 0 a 5 intentos
+  /// (0 = sin seguimiento) y de 1 a 720 horas.
+  followUpMaxAttempts   Int @default(2)
+  /// Cuánto después de su último mensaje se le escribe por primera vez.
+  followUpAfterHours    Int @default(24)
+  /// Entre un seguimiento y el siguiente.
+  followUpIntervalHours Int @default(48)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  triggers     CampaignTrigger[]
+  leads        CampaignLead[]
+  appointments Appointment[]
+
+  @@unique([clinicId, name])
+  @@index([clinicId, active])
+}
+
+/// Cómo se reconoce que un mensaje viene de una campaña. Una campaña puede tener varios formatos.
+model CampaignTrigger {
+  id         String              @id @default(cuid())
+  campaignId String
+  campaign   Campaign            @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  clinicId   String
+  kind       CampaignTriggerKind
+  /// `texto`: la frase normalizada (minúsculas, sin acentos). `anuncio`: el id del anuncio de Meta.
+  value      String
+
+  /// Un mismo formato no puede ser de dos campañas de la clínica: no se sabría a cuál atribuir.
+  @@unique([clinicId, kind, value])
+  @@index([campaignId])
+}
+
+/// Una persona (un WhatsApp) que llegó por una campaña. Es lo que se cuenta en el reporte y lo que el
+/// seguimiento recorre mientras no agende. Se crea la primera vez que ese número llega por esa campaña.
+model CampaignLead {
+  id         String   @id @default(cuid())
+  clinicId   String
+  clinic     Clinic   @relation(fields: [clinicId], references: [id])
+  campaignId String
+  campaign   Campaign @relation(fields: [campaignId], references: [id])
+
+  patientPhone String
+  triggerKind  CampaignTriggerKind
+  /// Si ese número nunca había escrito: un contacto nuevo, y no alguien que ya era paciente.
+  isNewContact Boolean
+
+  status       CampaignLeadStatus @default(abierto)
+  /// Por qué se cerró: `sin_respuesta`, `solicitud_del_paciente`, `cerrado_por_la_clinica`, `campana_inactiva`.
+  closedReason String?
+  closedAt     DateTime?
+
+  firstMessageAt DateTime  @default(now())
+  /// El último mensaje que mandó el paciente: el seguimiento espera a que pase un tiempo desde ahí.
+  lastInboundAt  DateTime  @default(now())
+  convertedAt    DateTime?
+
+  followUpCount  Int       @default(0)
+  lastFollowUpAt DateTime?
+
+  @@unique([clinicId, campaignId, patientPhone])
+  @@index([clinicId, patientPhone, firstMessageAt])
+  @@index([clinicId, status, lastInboundAt])
+}
+
+
+// --- Costos: consumo y tarifas de la plataforma ---
+
+/// Un envío de WhatsApp o una llamada a una integración (Google, Microsoft…), para medir
+/// cuánto consume y cuesta cada clínica. Las llamadas al modelo NO van acá: ya son `AgentRequest`.
+///
+/// **Solo metadatos**: ni teléfono, ni nombre, ni texto del mensaje. La "conversación" es el
+/// titular (`patientId`), sin su teléfono. El costo va CONGELADO al ocurrir (como la membresía
+/// copia el precio de lista): un cambio de tarifa no reescribe el pasado.
+model UsageEvent {
+  id         String   @id @default(cuid())
+  occurredAt DateTime @default(now())
+
+  /// Null = de la plataforma (no de una clínica).
+  clinicId String?
+  clinic   Clinic? @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  /// El titular de la conversación, si el mensaje fue a un paciente. Sin relación: es un rastro.
+  patientId String?
+
+  /// `whatsapp`, `google_places`, `google_calendar`, `microsoft_graph`…
+  provider String
+  /// WhatsApp: `plantilla` o `texto`. Integraciones: la operación (`text_search`, `crear_evento`…).
+  kind     String
+  /// WhatsApp: `utility`, `marketing`, `authentication` o `service` (texto libre en la ventana de 24 h).
+  category     String?
+  templateName String?
+  /// País de la clínica (ISO alpha-2): Meta cobra distinto por país.
+  country      String?
+
+  quantity Int      @default(1)
+  /// Null = no había tarifa cargada. Cero = gratis por definición (p. ej. Calendar).
+  costUsd  Decimal? @db.Decimal(16, 8)
+
+  @@index([clinicId, occurredAt])
+  @@index([provider, occurredAt])
+}
+
+/// Una tarifa editable, con vigencia. Se usa la última con `effectiveFrom <= fecha del evento`.
+/// Las cargan a mano el super-admin desde la tarifa vigente de cada proveedor: la plataforma
+/// NO trae precios de memoria. Sin tarifa, el costo queda null.
+model CostRate {
+  id            String   @id @default(cuid())
+  /// `anthropic`, `whatsapp`, `google_places`…
+  provider      String
+  /// Qué se cobra: `<modelo>:input`, `whatsapp:utility:MX`, `google_places:text_search`…
+  item          String
+  /// `usd_por_millon_tokens`, `usd_por_mensaje` o `usd_por_llamada`.
+  unit          String
+  priceUsd      Decimal  @db.Decimal(16, 8)
+  effectiveFrom DateTime
+  note          String?
+  createdAt     DateTime @default(now())
+
+  @@unique([item, effectiveFrom])
+  @@index([provider, item, effectiveFrom])
+}
+
+/// Tipo de cambio manual para mostrar el costo en la moneda local de una clínica
+/// (`Country.currency`). `unitsPerUsd` = cuántas unidades de esa moneda vale 1 USD.
+model FxRate {
+  id            String   @id @default(cuid())
+  currency      String
+  unitsPerUsd   Decimal  @db.Decimal(16, 6)
+  effectiveFrom DateTime
+  createdAt     DateTime @default(now())
+
+  @@unique([currency, effectiveFrom])
+}

@@ -1,0 +1,13 @@
+-- El horario de atención pasa a tener una sola fuente: `WorkingHours`.
+--
+-- `Clinic.businessHours` era texto libre que solo leía el prompt, mientras
+-- la validación al agendar usaba `WorkingHours`. Los dos se desincronizaban:
+-- en la clínica piloto el texto anunciaba comida de 15:00 a 16:00 y el
+-- horario real la tenía de 13:00 a 14:00, así que el bot agendaba a las
+-- 15:00 (correctamente, según el dato) y después le daba la razón al
+-- paciente cuando protestaba.
+--
+-- Ahora el texto que lee el prompt se genera desde `WorkingHours` con
+-- `describeWorkingHours()`, así que el bot no puede anunciar un horario que
+-- el sistema después rechace.
+ALTER TABLE "Clinic" DROP COLUMN "businessHours";

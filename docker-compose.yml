@@ -1,0 +1,45 @@
+# Postgres + SMTP local para desarrollo. La base es la fuente de verdad de
+# la disponibilidad de turnos (ver CLAUDE.md), así que hace falta tenerla
+# levantada para cualquier cosa que no sea leer código.
+#
+#   docker compose up -d db mailhog
+#   docker compose down          # para; los datos quedan en el volumen
+#   docker compose down -v       # borra también los datos
+#
+# El puerto del host de Postgres es 5433 (no 5432) para no chocar con otros
+# Postgres que puedas tener corriendo. El DATABASE_URL del .env tiene que
+# coincidir.
+#
+# mailhog atrapa los emails que manda services/email.ts sin entregarlos de
+# verdad — se ven en http://localhost:8025. No pide cuenta ni credenciales
+# reales, así que el SMTP_USER/SMTP_PASS del .env pueden ser cualquier cosa.
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: clinica-agenda-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: clinica
+      POSTGRES_PASSWORD: clinica
+      POSTGRES_DB: clinica_agenda
+    ports:
+      - "5433:5432"
+    volumes:
+      - clinica-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clinica -d clinica_agenda"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    container_name: clinica-agenda-mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"   # SMTP — es lo que apunta SMTP_HOST/SMTP_PORT
+      - "8025:8025"   # interfaz web para ver los emails atrapados
+
+volumes:
+  clinica-pgdata:

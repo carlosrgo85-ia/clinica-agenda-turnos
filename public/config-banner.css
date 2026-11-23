@@ -1,0 +1,211 @@
+/*
+ * Banner de configuración incompleta.
+ *
+ * Los colores van como variables sobre :root para que el tema oscuro solo
+ * las redefina, y no haya ningún color declarado únicamente dentro del
+ * media query.
+ */
+
+:root {
+  --cb-fg: #1c1c1e;
+  --cb-fg-suave: #56565c;
+  --cb-borde: #dcdce0;
+  --cb-fondo: #ffffff;
+
+  --cb-bloq-fondo: #fdf2f2;
+  --cb-bloq-borde: #e5b3b3;
+  --cb-bloq-acento: #a11c1c;
+
+  --cb-adv-fondo: #fdf8ee;
+  --cb-adv-borde: #e3cf9f;
+  --cb-adv-acento: #8a6100;
+
+  --cb-ok-fondo: #f1f8f3;
+  --cb-ok-borde: #b6d7c0;
+  --cb-ok-acento: #1f6b38;
+
+  --cb-boton-fondo: #1c1c1e;
+  --cb-boton-fg: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --cb-fg: #f2f2f4;
+    --cb-fg-suave: #a8a8b0;
+    --cb-borde: #3a3a40;
+    --cb-fondo: #1a1a1c;
+
+    --cb-bloq-fondo: #2a1717;
+    --cb-bloq-borde: #6b2f2f;
+    --cb-bloq-acento: #f0a5a5;
+
+    --cb-adv-fondo: #292115;
+    --cb-adv-borde: #6b5424;
+    --cb-adv-acento: #e8c37a;
+
+    --cb-ok-fondo: #16241a;
+    --cb-ok-borde: #2f5b3c;
+    --cb-ok-acento: #9ad4ac;
+
+    --cb-boton-fondo: #f2f2f4;
+    --cb-boton-fg: #1a1a1c;
+  }
+}
+
+:root[data-theme="dark"] {
+  --cb-fg: #f2f2f4;
+  --cb-fg-suave: #a8a8b0;
+  --cb-borde: #3a3a40;
+  --cb-fondo: #1a1a1c;
+
+  --cb-bloq-fondo: #2a1717;
+  --cb-bloq-borde: #6b2f2f;
+  --cb-bloq-acento: #f0a5a5;
+
+  --cb-adv-fondo: #292115;
+  --cb-adv-borde: #6b5424;
+  --cb-adv-acento: #e8c37a;
+
+  --cb-ok-fondo: #16241a;
+  --cb-ok-borde: #2f5b3c;
+  --cb-ok-acento: #9ad4ac;
+
+  --cb-boton-fondo: #f2f2f4;
+  --cb-boton-fg: #1a1a1c;
+}
+
+.cb-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.cb-issue {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--cb-borde);
+  border-left-width: 4px;
+  border-radius: 6px;
+  background: var(--cb-fondo);
+  color: var(--cb-fg);
+}
+
+.cb-issue--bloqueante {
+  background: var(--cb-bloq-fondo);
+  border-color: var(--cb-bloq-borde);
+  border-left-color: var(--cb-bloq-acento);
+}
+
+.cb-issue--advertencia {
+  background: var(--cb-adv-fondo);
+  border-color: var(--cb-adv-borde);
+  border-left-color: var(--cb-adv-acento);
+}
+
+.cb-issue--ok {
+  background: var(--cb-ok-fondo);
+  border-color: var(--cb-ok-borde);
+  border-left-color: var(--cb-ok-acento);
+}
+
+/* El icono es decorativo: lo que comunica la severidad es la etiqueta. */
+.cb-icono {
+  flex: 0 0 auto;
+  font-size: 1.1rem;
+  line-height: 1.4;
+}
+
+.cb-cuerpo {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.cb-etiqueta {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 0.25rem;
+}
+
+.cb-issue--bloqueante .cb-etiqueta {
+  color: var(--cb-bloq-acento);
+}
+.cb-issue--advertencia .cb-etiqueta {
+  color: var(--cb-adv-acento);
+}
+.cb-issue--ok .cb-etiqueta {
+  color: var(--cb-ok-acento);
+}
+
+.cb-mensaje {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.cb-accion {
+  margin: 0.35rem 0 0;
+  color: var(--cb-fg-suave);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.cb-controles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.65rem;
+}
+
+.cb-boton {
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: var(--cb-boton-fondo);
+  color: var(--cb-boton-fg);
+  cursor: pointer;
+}
+
+.cb-boton:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.cb-boton:disabled {
+  opacity: 0.5;
+  cursor: progress;
+}
+
+/* Foco visible por teclado, sin depender solo del color. */
+.cb-boton:focus-visible,
+.cb-select:focus-visible {
+  outline: 2px solid var(--cb-fg);
+  outline-offset: 2px;
+}
+
+.cb-select {
+  font: inherit;
+  font-size: 0.875rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--cb-borde);
+  border-radius: 5px;
+  background: var(--cb-fondo);
+  color: var(--cb-fg);
+}
+
+.cb-estado {
+  margin: 0.5rem 0 0;
+  font-size: 0.875rem;
+  color: var(--cb-fg-suave);
+}
+
+.cb-vacio {
+  color: var(--cb-fg-suave);
+  padding: 0.5rem 0;
+}

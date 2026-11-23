@@ -1,0 +1,52 @@
+{
+  "name": "clinica-agenda-turnos",
+  "version": "0.1.0",
+  "description": "Agente de WhatsApp multi-clínica y multi-rubro para gestión de turnos, con Claude como motor de interpretación",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "concurrently -n api,worker,web \"npm:dev:api\" \"npm:dev:worker\" \"npm:dev:web\"",
+    "dev:api": "tsx watch src/index.ts",
+    "dev:worker": "tsx watch src/worker.ts",
+    "dev:web": "npm run dev --prefix frontend",
+    "build": "tsc && npm run build --prefix frontend",
+    "start": "node dist/index.js",
+    "start:worker": "node dist/worker.js",
+    "test": "vitest run",
+    "lint": "tsc --noEmit",
+    "db:migrate": "prisma migrate dev",
+    "db:generate": "prisma generate",
+    "db:studio": "prisma studio",
+    "db:seed": "tsx prisma/seed.ts"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.125.0",
+    "@prisma/client": "^5.18.0",
+    "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^16.4.5",
+    "exceljs": "^4.4.0",
+    "express": "^4.19.2",
+    "express-rate-limit": "^8.7.0",
+    "googleapis": "^144.0.0",
+    "jsonwebtoken": "^9.0.3",
+    "node-cron": "^3.0.3",
+    "nodemailer": "^6.9.14"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^20.14.10",
+    "@types/node-cron": "^3.0.11",
+    "@types/nodemailer": "^6.4.15",
+    "concurrently": "^9.2.4",
+    "prisma": "^5.18.0",
+    "tsx": "^4.16.2",
+    "typescript": "^5.5.4",
+    "vitest": "^2.0.3"
+  }
+}

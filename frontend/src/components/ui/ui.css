@@ -1,0 +1,1028 @@
+/**
+ * Estilos del kit de UI genérico (components/ui/). Todo sobre los tokens
+ * de frontend/src/index.css — nada de color/tamaño hardcodeado acá, así
+ * que un cambio de tema (claro/oscuro, o de marca) no requiere tocar este
+ * archivo. Las primitivas de comportamiento son de Radix/cmdk; esto es
+ * pura presentación.
+ */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------- Button ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  height: 38px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  cursor: pointer;
+  font-size: 0.95em;
+  font-weight: 500;
+  line-height: 1;
+  transition: background-color 0.15s, border-color 0.15s, opacity 0.15s;
+}
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.btn--default {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-color: var(--primary);
+}
+.btn--default:not(:disabled):hover {
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
+}
+.btn--destructive {
+  background: var(--destructive);
+  color: var(--destructive-foreground);
+  border-color: var(--destructive);
+}
+.btn--destructive:not(:disabled):hover {
+  filter: brightness(0.9);
+}
+.btn--outline {
+  background: transparent;
+}
+.btn--outline:not(:disabled):hover {
+  background: var(--muted);
+}
+.btn--secondary {
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+  border-color: transparent;
+}
+.btn--secondary:not(:disabled):hover {
+  filter: brightness(0.96);
+}
+.btn--ghost {
+  background: transparent;
+  border-color: transparent;
+}
+.btn--ghost:not(:disabled):hover {
+  background: var(--muted);
+}
+.btn--link {
+  background: transparent;
+  border-color: transparent;
+  color: var(--primary);
+  height: auto;
+  padding: 0;
+  text-decoration: underline;
+}
+.btn--sm {
+  height: 32px;
+  padding: 4px 12px;
+  font-size: 0.85em;
+}
+.btn--lg {
+  height: 44px;
+  padding: 10px 20px;
+  font-size: 1.05em;
+}
+.btn--icon {
+  width: 38px;
+  height: 38px;
+  padding: 0;
+}
+
+/* ---------- Badge ---------- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.78em;
+  font-weight: 600;
+  border: 1px solid transparent;
+  line-height: 1.6;
+}
+.badge--default {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+.badge--secondary {
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+}
+.badge--destructive {
+  background: var(--destructive);
+  color: var(--destructive-foreground);
+}
+/* Estado correcto ("Configurado", "Conectado"): verde suave con texto del mismo tono, y un
+   ícono o punto delante para que no dependa solo del color. */
+.badge--success {
+  background: color-mix(in srgb, var(--success) 16%, transparent);
+  border-color: color-mix(in srgb, var(--success) 40%, transparent);
+  color: var(--success);
+}
+.badge--outline {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--foreground);
+}
+.badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* ---------- Empty / error states ---------- */
+.empty-state,
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  padding: 48px 24px;
+  color: var(--muted-foreground);
+}
+.empty-state svg,
+.error-state svg {
+  color: var(--muted-foreground);
+  margin-bottom: 8px;
+}
+.empty-state h3,
+.error-state h3 {
+  margin: 0;
+  color: var(--foreground);
+  font-size: 1.05em;
+}
+.empty-state p,
+.error-state p {
+  margin: 0;
+  max-width: 40ch;
+}
+.error-state {
+  color: var(--destructive);
+}
+.error-state svg {
+  color: var(--destructive);
+}
+.error-state--compact {
+  flex-direction: row;
+  padding: 12px 16px;
+  text-align: left;
+  justify-content: space-between;
+  border: 1px solid var(--destructive);
+  border-radius: var(--radius);
+}
+.error-state--compact svg {
+  margin-bottom: 0;
+}
+
+/* ---------- Skeleton ---------- */
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.skeleton {
+  background: var(--muted);
+  border-radius: var(--radius);
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+.card-skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+.card-skeleton-grid .card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.page-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ---------- Error boundary ---------- */
+.error-boundary {
+  padding: 48px 24px;
+  text-align: center;
+}
+
+/* ---------- Overlays: dialog / alert-dialog / sheet ---------- */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 0.4);
+  animation: overlay-fade-in 0.15s ease-out;
+  z-index: 40;
+}
+@keyframes overlay-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.dialog-content {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  max-width: 480px;
+  max-height: 85vh;
+  overflow-y: auto;
+  background: var(--card);
+  color: var(--card-foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  z-index: 41;
+}
+.dialog-header {
+  margin-bottom: 16px;
+}
+.dialog-title {
+  margin: 0 0 4px;
+  font-size: 1.15em;
+}
+.dialog-description {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.9em;
+}
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}
+.dialog-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: transparent;
+  border: none;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--radius);
+}
+.dialog-close:hover {
+  background: var(--muted);
+}
+
+.sheet-content {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  background: var(--card);
+  color: var(--card-foreground);
+  border-left: 1px solid var(--border);
+  padding: 24px;
+  width: 100%;
+  max-width: 300px;
+  z-index: 41;
+  overflow-y: auto;
+  animation: sheet-slide-in 0.2s ease-out;
+}
+.sheet-content--right {
+  right: 0;
+  border-left: 1px solid var(--border);
+}
+.sheet-content--left {
+  left: 0;
+  border-right: 1px solid var(--border);
+}
+@keyframes sheet-slide-in {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+/* ---------- Popover / tooltip ---------- */
+.popover-content,
+.select-content,
+.dropdown-content {
+  z-index: 42;
+  background: var(--popover);
+  color: var(--popover-foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 6px;
+  min-width: 180px;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.12);
+  animation: overlay-fade-in 0.1s ease-out;
+}
+.popover-content {
+  padding: 16px;
+  min-width: 240px;
+}
+.tooltip-content {
+  z-index: 43;
+  background: var(--foreground);
+  color: var(--background);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 0.82em;
+}
+
+/* ---------- Dropdown menu ---------- */
+.dropdown-item,
+.select-item,
+.command-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 0.92em;
+  cursor: pointer;
+  outline: none;
+}
+.dropdown-item[data-highlighted],
+.select-item[data-highlighted],
+.command-item[data-selected="true"] {
+  background: var(--muted);
+}
+.dropdown-item--destructive {
+  color: var(--destructive);
+}
+.dropdown-separator {
+  height: 1px;
+  background: var(--border);
+  margin: 6px 0;
+}
+.dropdown-label {
+  padding: 4px 10px;
+  font-size: 0.78em;
+  color: var(--muted-foreground);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* ---------- Collapsible ---------- */
+.collapsible-content {
+  overflow: hidden;
+}
+.collapsible-content[data-state="open"] {
+  animation: collapsible-open 0.15s ease-out;
+}
+.collapsible-content[data-state="closed"] {
+  animation: collapsible-close 0.15s ease-out;
+}
+@keyframes collapsible-open {
+  from { height: 0; }
+  to { height: var(--radix-collapsible-content-height); }
+}
+@keyframes collapsible-close {
+  from { height: var(--radix-collapsible-content-height); }
+  to { height: 0; }
+}
+
+/* ---------- Inputs ---------- */
+.label {
+  font-size: 0.9em;
+  font-weight: 500;
+}
+.input,
+.textarea,
+.select-trigger {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--input);
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--foreground);
+}
+.textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* ---------- DateField ---------- */
+.date-field {
+  position: relative;
+  width: 100%;
+}
+/* Espacio a la derecha para que el texto no pase por debajo del botón. */
+.date-field__text {
+  padding-right: 36px;
+}
+/* Una fecha completa pero imposible (31/02). Sin esto se escribe, no pasa
+   nada, y el filtro simplemente se ignora sin que nadie entienda por qué. */
+.date-field__text[aria-invalid="true"] {
+  border-color: var(--destructive);
+}
+.date-field__picker {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  padding: 6px;
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+.date-field__picker:not(:disabled):hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+.date-field__picker:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+/*
+ * El date nativo existe solo para abrir su calendario con showPicker(). No
+ * se oculta con `display:none` ni `visibility:hidden`: en ese estado el
+ * navegador se niega a abrirlo. Queda de 1px y sin eventos, anclado al borde
+ * para que el calendario aparezca pegado al campo.
+ */
+.date-field__native {
+  position: absolute;
+  right: 10px;
+  bottom: 0;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+.select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+}
+.select-item {
+  justify-content: space-between;
+}
+
+.checkbox {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 1px solid var(--input);
+  background: var(--card);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.checkbox[data-state="checked"] {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+}
+.checkbox-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.switch {
+  width: 36px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--muted);
+  position: relative;
+  border: none;
+  cursor: pointer;
+}
+.switch[data-state="checked"] {
+  background: var(--primary);
+}
+.switch-thumb {
+  display: block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--card);
+  transform: translateX(2px);
+  transition: transform 0.15s;
+}
+.switch[data-state="checked"] .switch-thumb {
+  transform: translateX(18px);
+}
+
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.radio-item {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid var(--input);
+  background: var(--card);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.radio-item-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--primary);
+}
+.radio-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.slider-root {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 20px;
+}
+.slider-track {
+  position: relative;
+  flex: 1;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--muted);
+}
+.slider-range {
+  position: absolute;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--primary);
+}
+.slider-thumb {
+  display: block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--card);
+  border: 2px solid var(--primary);
+}
+
+/* ---------- Data display ---------- */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.table th,
+.table td {
+  text-align: left;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.table th {
+  color: var(--muted-foreground);
+  font-weight: 600;
+  font-size: 0.85em;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.tabs-list {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--muted);
+  border-radius: var(--radius);
+}
+.tabs-trigger {
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--muted-foreground);
+  font-size: 0.9em;
+}
+.tabs-trigger[data-state="active"] {
+  background: var(--card);
+  color: var(--foreground);
+}
+.tabs-content {
+  margin-top: 16px;
+}
+
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 0.85em;
+  font-weight: 600;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.separator {
+  background: var(--border);
+  flex-shrink: 0;
+}
+.separator[data-orientation="horizontal"] {
+  height: 1px;
+  width: 100%;
+}
+.separator[data-orientation="vertical"] {
+  width: 1px;
+  height: 100%;
+}
+
+.scroll-area {
+  overflow: hidden;
+}
+.scroll-area-scrollbar {
+  display: flex;
+  width: 8px;
+  padding: 2px;
+}
+.scroll-area-thumb {
+  flex: 1;
+  background: var(--border);
+  border-radius: 999px;
+}
+
+.progress-root {
+  position: relative;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--muted);
+  overflow: hidden;
+}
+.progress-indicator {
+  height: 100%;
+  background: var(--primary);
+  transition: transform 0.2s;
+}
+
+/* ---------- Command palette ---------- */
+.dialog-content.command-dialog {
+  max-width: 560px;
+  padding: 0;
+  top: 20%;
+  transform: translate(-50%, 0);
+}
+.dialog-content.command-dialog .dialog-close {
+  display: none;
+}
+.command-input {
+  width: 100%;
+  padding: 16px;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  color: var(--foreground);
+  font-size: 1em;
+}
+.command-list {
+  padding: 6px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.command-empty {
+  padding: 24px;
+  text-align: center;
+  color: var(--muted-foreground);
+}
+.command-item-description {
+  margin-left: auto;
+  padding-left: 12px;
+  font-size: 0.85em;
+  color: var(--muted-foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.command-group-heading {
+  padding: 6px 10px;
+  font-size: 0.78em;
+  color: var(--muted-foreground);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* ---------- Calendario (grilla de agenda) ---------- */
+.calendar-grid__header,
+.calendar-grid__body {
+  display: flex;
+}
+.calendar-grid__body {
+  position: relative;
+}
+.calendar-grid__gutter {
+  position: relative;
+  width: 56px;
+  flex-shrink: 0;
+}
+.calendar-grid__col-title {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 6px;
+  font-weight: 600;
+  font-size: 0.9em;
+  text-align: center;
+  border-left: 1px solid var(--border);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.calendar-grid__col {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  border-left: 1px solid var(--border);
+}
+/* Las líneas de hora y los rótulos se posicionan por minuto, no por fila:
+   una cita de 15' tiene que ocupar un cuarto de la altura de una hora. */
+.calendar-grid__hour-label {
+  position: absolute;
+  right: 8px;
+  transform: translateY(-50%);
+  font-size: 0.78em;
+  color: var(--muted-foreground);
+}
+.calendar-grid__line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px solid var(--border);
+}
+
+.calendar-cita {
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  padding: 3px 6px;
+  border-radius: var(--radius);
+  border-left: 3px solid var(--primary);
+  background: var(--muted);
+  font-size: 0.8em;
+  line-height: 1.25;
+  overflow: hidden;
+}
+/* Una sola línea cada una: en la vista de semana las columnas son angostas
+   y un nombre largo se comía dos renglones, dejando el servicio afuera. El
+   dato completo está en el `title` del bloque. */
+.calendar-cita__titulo,
+.calendar-cita__detalle {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.calendar-cita__detalle {
+  color: var(--muted-foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Una cita ya atendida no compite visualmente con las que faltan. */
+.calendar-cita--atendido {
+  border-left-color: var(--muted-foreground);
+  opacity: 0.7;
+}
+
+/* Franjas en las que no se atiende: el hueco del mediodía, lo de antes de
+   abrir y de después de cerrar, y los días cerrados enteros (feriados). Es
+   el complemento de los tramos de `WorkingHours`, o sea exactamente lo que
+   `booking.ts` rechaza. */
+.calendar-grid__cerrado {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: var(--muted);
+  /* Rayado diagonal: un gris liso se confunde con "no hay nada cargado". */
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 6px,
+    var(--border) 6px,
+    var(--border) 7px
+  );
+  opacity: 0.55;
+}
+.calendar-grid__cerrado-rotulo {
+  position: absolute;
+  top: 8px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 0.78em;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0 4px;
+}
+
+/* El asterisco de "no le tocó su espacio habitual". El detalle va en el
+   tooltip del bloque: en una cita de 15' no entra una frase. */
+.calendar-cita__marca {
+  color: var(--destructive);
+  font-weight: 700;
+  margin-left: 2px;
+}
+
+
+/* ---------- Agenda editable: arrastrar, bloqueos, vista previa ---------- */
+.calendar-grid__col--editable {
+  cursor: cell;
+}
+.calendar-cita--editable {
+  cursor: grab;
+}
+.calendar-cita--editable:active {
+  cursor: grabbing;
+}
+.calendar-cita--arrastrando {
+  opacity: 0.4;
+}
+/* Una cita que se guardó saltándose reglas: el detalle va en el tooltip. */
+.calendar-cita--forzada {
+  border-left-style: dashed;
+}
+
+/* Dónde va a quedar lo que se está arrastrando. */
+.calendar-grid__vista-previa {
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  z-index: 3;
+  pointer-events: none;
+  border-radius: var(--radius);
+  border: 2px dashed var(--primary);
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  font-size: 0.75em;
+  font-weight: 600;
+  padding: 2px 6px;
+  color: var(--primary);
+}
+
+/* Bloqueos de agenda (reunión, almuerzo, vacaciones, o un evento ajeno
+   importado). Rayado distinto al de "cerrado" y con su rótulo: no son lo mismo
+   que un horario en que no se atiende. */
+.calendar-bloqueo {
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  z-index: 1;
+  padding: 3px 6px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background-color: var(--muted);
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 5px,
+    color-mix(in srgb, var(--muted-foreground) 35%, transparent) 5px,
+    color-mix(in srgb, var(--muted-foreground) 35%, transparent) 6px
+  );
+  font-size: 0.78em;
+  color: var(--muted-foreground);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.calendar-bloqueo--manual {
+  cursor: grab;
+  border-style: dashed;
+}
+.calendar-cita {
+  z-index: 2;
+}
+
+/* Resultados de la búsqueda de pacientes en el alta de una cita. */
+.agenda-resultados {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  max-height: 180px;
+  overflow-y: auto;
+}
+.agenda-resultados li + li {
+  border-top: 1px solid var(--border);
+}
+.agenda-resultados button {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+.agenda-resultados button:hover {
+  background: var(--muted);
+}
+
+/* Reglas que no se cumplen, antes de guardar igual. */
+.agenda-alerta {
+  border: 1px solid var(--destructive);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  margin: 12px 0;
+  font-size: 0.9em;
+}
+.agenda-alerta ul {
+  margin: 6px 0;
+  padding-left: 18px;
+}
+
+.link-button {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--primary);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ---------- Agenda: título del período ---------- */
+/* El período que se está mirando es lo primero que hay que ubicar en la Agenda: va grande y en el color del texto, con la cantidad de
+   citas como una etiqueta aparte, en vez de una línea gris más entre los controles y la grilla. */
+.agenda-periodo {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin: 4px 0 14px;
+}
+.agenda-periodo__icono {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
+  color: var(--primary);
+}
+.agenda-periodo__titulo {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--foreground);
+}
+.agenda-periodo__citas {
+  padding: 2px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card, transparent);
+  color: var(--foreground);
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ---------- Campo con ícono adelante (búsqueda) ---------- */
+.input-con-icono {
+  position: relative;
+}
+.input-con-icono__icono {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted-foreground);
+  pointer-events: none;
+}
+.input-con-icono__campo {
+  padding-left: 36px;
+}
