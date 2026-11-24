@@ -19,6 +19,7 @@ import {
 import { sendPasswordResetEmail } from "../services/email";
 import { authenticate } from "../middleware/authenticate";
 import { enrichAudit } from "../services/audit";
+import { describeError, recordSystemEvent, SYSTEM_EVENT_KINDS } from "../services/system-events";
 import { prisma } from "../db/client";
 
 export const authRouter = Router();
@@ -132,7 +133,19 @@ authRouter.post("/forgot-password", authRateLimit, async (req, res) => {
     const { token, tokenHash } = generateResetToken();
     await createPasswordResetToken(user.id, tokenHash);
     const resetUrl = `${env.frontendUrl}/app/set-password?token=${token}`;
-    await sendPasswordResetEmail({ toEmail: user.email, userName: user.name, resetUrl });
+    // Un SMTP caído no puede tumbar el servidor (promesa rechazada sin manejar en un
+    // handler async de Express 4) ni revelar al cliente que la cuenta existe: se responde
+    // igual y la falla queda en Monitoreo.
+    try {
+      await sendPasswordResetEmail({ toEmail: user.email, userName: user.name, resetUrl });
+    } catch (error) {
+      console.error("No se pudo enviar el correo de recuperación:", describeError(error));
+      await recordSystemEvent({
+        kind: SYSTEM_EVENT_KINDS.CORREO_ENVIO,
+        clinicId: user.clinicId,
+        message: `Correo de recuperación no enviado: ${describeError(error)}`,
+      });
+    }
   }
 
   res.json({ ok: true });

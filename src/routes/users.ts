@@ -5,7 +5,7 @@ import { authenticate } from "../middleware/authenticate";
 import { requirePermission } from "../middleware/authorize";
 import { createUser, listUsersByClinic, updateUserInClinic } from "../repositories/users.repository";
 import { roleIdsBelongToClinic } from "../repositories/roles.repository";
-import { sendUserInvitation } from "../services/invitations";
+import { trySendUserInvitation } from "../services/invitations";
 import { prisma } from "../db/client";
 
 export const usersRouter = Router();
@@ -40,11 +40,11 @@ usersRouter.post(
     }
 
     const user = await createUser({ clinicId, email, name, roleIds });
-    await sendUserInvitation(user);
+    const invitacionEnviada = await trySendUserInvitation(user, clinicId);
     // A quién se dio de alta y con qué roles: los roles son los permisos que recibe.
     enrichAudit(res, { resourceId: user.id, details: { emailDelUsuario: email, roles: roleIds } });
 
-    res.status(201).json(user);
+    res.status(201).json({ ...user, invitacionEnviada });
   }
 );
 

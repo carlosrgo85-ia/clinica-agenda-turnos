@@ -3429,6 +3429,7 @@ y **no bloquea la salida**. Ninguno está diseñado todavía; lo anotado son los
   un proceso aparte del que hay una sola instancia — si no, cada instancia
   del webhook manda los recordatorios de nuevo y el webhook deja de poder
   escalar.
+- No dejar un `await` de correo (`sendMail`, invitaciones, recuperar contraseña) sin `try/catch` dentro de un handler `async` de Express 4: un SMTP mal configurado es una promesa rechazada sin manejar y **mata el proceso web** (pasó en el primer despliegue, 2026-11-24). Usar `trySendUserInvitation()` o capturar y registrar `correo_envio`.
 - No registrar en `SystemEvent` el texto de un mensaje, un teléfono ni un
   nombre de paciente: solo clínica, tipo y error. Y `recordSystemEvent()` no
   puede lanzar nunca.

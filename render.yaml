@@ -17,7 +17,7 @@ services:
       - key: DATABASE_URL
         fromDatabase: { name: clinica-db, property: connectionString }
       - key: TRUST_PROXY_HOPS
-        value: "1"   # ajustar según docs/despliegue.md
+        value: "2"   # Render va detrás de Cloudflare (verificado 2026-11-24: con 1 la IP era 172.71.x.x); ver docs/despliegue.md
       - key: WHATSAPP_VERIFY_TOKEN
         sync: false
       - key: ANTHROPIC_API_KEY

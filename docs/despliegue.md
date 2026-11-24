@@ -43,7 +43,7 @@ Guardar `CALENDAR_TOKEN_ENCRYPTION_KEY` en un lugar seguro aparte: si se pierde,
 Las credenciales de OAuth de Google y de Microsoft **no** van al `.env`: se cargan en la app, en Catálogos → Secretos.
 
 ### `TRUST_PROXY_HOPS`
-Sin esto, la IP que ve el servidor es la del proxy: el límite de intentos de login cuenta a todos como una sola persona y la auditoría guarda una IP que no es la del usuario. Es la cantidad de proxies **entre el usuario y la app**: 1 si va directo a Render; 2 si el dominio pasa por Cloudflare con proxy naranja y después Render. Mal puesto, `X-Forwarded-For` se puede falsificar. Después de desplegar, entrar al panel y comprobar en Auditoría que la IP guardada es la tuya.
+Sin esto, la IP que ve el servidor es la del proxy: el límite de intentos de login cuenta a todos como una sola persona y la auditoría guarda una IP que no es la del usuario. Es la cantidad de proxies **entre el usuario y la app**: **En Render la cantidad real es 2**: Render mismo está detrás de Cloudflare (el 2026-11-24, con 1, Auditoría guardaba IPs `172.71.x.x`, que son de Cloudflare y cambian en cada evento). Si además el dominio propio pasa por Cloudflare con proxy naranja, probar con 3. Mal puesto, `X-Forwarded-For` se puede falsificar. Después de desplegar, entrar al panel y comprobar en Auditoría que la IP guardada es la tuya.
 
 ## 4. Base de datos
 Las migraciones corren solas antes de cada despliegue (`preDeployCommand: npx prisma migrate deploy`). La primera vez, además, **una sola vez** y desde una consola del servicio web:

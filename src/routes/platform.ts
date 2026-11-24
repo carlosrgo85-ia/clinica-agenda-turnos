@@ -65,7 +65,7 @@ import {
 import { clinicDateKey } from "../services/time";
 import { ensureClinicAdminRole } from "../repositories/roles.repository";
 import { createUser } from "../repositories/users.repository";
-import { sendUserInvitation } from "../services/invitations";
+import { trySendUserInvitation } from "../services/invitations";
 import { fetchGoogleBusinessData } from "../services/google-places";
 import {
   WorkingHoursValidationError,
@@ -264,7 +264,7 @@ platformRouter.post("/clinics", requirePermission(PERMISSIONS.CLINICAS_CREAR), a
       name: adminName,
       roleIds: [adminRole.id],
     });
-    await sendUserInvitation(admin);
+    await trySendUserInvitation(admin, clinic.id);
   }
 
   /**

@@ -28,6 +28,8 @@ export const SYSTEM_EVENT_KINDS = {
   AUDITORIA_FALLO: "auditoria_fallo",
   /** Google rechazó la app de OAuth de la plataforma (`jobs/google-oauth-health.ts`). */
   GOOGLE_OAUTH_INVALIDO: "google_oauth_invalido",
+  /** No salió un correo de la plataforma (invitación, recuperar contraseña): casi siempre el SMTP. */
+  CORREO_ENVIO: "correo_envio",
 } as const;
 
 export type SystemEventKind = (typeof SYSTEM_EVENT_KINDS)[keyof typeof SYSTEM_EVENT_KINDS];
@@ -41,6 +43,7 @@ export const SYSTEM_EVENT_LABELS: Record<SystemEventKind, string> = {
   servicio_sin_match: "Servicio pedido sin match en el catálogo",
   auditoria_fallo: "No se pudo escribir un registro de auditoría",
   google_oauth_invalido: "Google rechaza la app de OAuth de la plataforma",
+  correo_envio: "No salió un correo de la plataforma",
 };
 
 const MAX_MESSAGE_LENGTH = 500;
