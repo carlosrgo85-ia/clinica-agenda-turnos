@@ -1,6 +1,7 @@
 # Política de Privacidad
+<!-- revision-legal-pendiente: se quita SOLO cuando un abogado revisó este texto; mientras esté, la página sale como borrador -->
 
-**Pontic** · Versión 0.1 (borrador) · Vigente desde: [FECHA]
+**Pontic** · Versión 0.1 · Vigente desde: 25 de noviembre de 2026
 
 Esta política explica qué datos personales trata **Carlos Garcia Ortiz (persona física)** ("**nosotros**" o "la **Plataforma**") al prestar su servicio de asistente de WhatsApp para la gestión de citas, para qué los usa, con quién los comparte y qué derechos tiene usted.
 
@@ -57,7 +58,7 @@ El asistente usa un **modelo de inteligencia artificial de un proveedor externo*
 
 - El asistente **no da consejos médicos ni diagnósticos**, y cuando un mensaje parece una urgencia o necesita una persona, **deriva a la Clínica**.
 - Las respuestas de una IA pueden ser incorrectas. **Las decisiones sobre su atención las toma la Clínica, no el asistente.**
-- Según la documentación pública de Anthropic para su API comercial (consultada el 2026-11-20), Anthropic actúa como **encargado** de esos datos; **el contenido de las solicitudes y respuestas no se conserva por defecto** (con excepción de ciertos modelos que exigen conservación por 30 días, que el asistente no usa hoy); **los datos que se conservan no se usan para entrenar modelos sin permiso expreso**; y el contenido que los sistemas automáticos de seguridad marquen como sospechoso, o que una ley obligue a guardar, puede conservarse hasta 2 años. [VERIFICAR CONTRA LA VERSIÓN VIGENTE ANTES DE PUBLICAR y actualizar si cambia el modelo usado o el acuerdo con el proveedor.]
+- Según la documentación pública de Anthropic para su API comercial (centro de privacidad de Anthropic, consultada el 2026-11-25), Anthropic actúa como **encargado** de esos datos; el contenido de las solicitudes y respuestas **no se conserva más de 30 días** en sus sistemas; **no se usa para entrenar modelos sin permiso expreso**; y puede conservarse por más tiempo cuando hace falta para hacer cumplir su política de uso (el contenido que sus sistemas automáticos de seguridad marquen como sospechoso puede conservarse hasta 2 años, y los resultados de esa clasificación hasta 7 años) o cuando una ley lo obligue. Estas condiciones pueden cambiar: actualizaremos esta política si cambia el modelo que usamos o el acuerdo con el proveedor.
 - No se toman decisiones que produzcan efectos legales sobre usted basadas únicamente en tratamiento automatizado.
 
 Dejamos un registro de cada solicitud al modelo con datos de funcionamiento (duración, tamaño, resultado y la decisión estructurada, como el servicio o la fecha pedida). **Ese registro no guarda el texto de los mensajes.** Se conserva 90 días.
@@ -74,7 +75,7 @@ Usamos proveedores que tratan datos **por nuestra cuenta**, solo para prestar el
 | **Microsoft** (Outlook / Graph) | Igual, para Clínicas que usan Outlook | Igual |
 | **Render (Render Services, Inc.)** | Alojamiento de la aplicación y de la base de datos | Todos los datos de la Plataforma |
 | **GoDaddy (Professional Email con tecnología de Titan)** | Envío de correos (reportes, avisos, invitaciones) | Destinatario y contenido del aviso |
-| **[PASARELA DE PAGO, cuando exista]** | Cobro de la membresía | Datos de facturación; **no guardamos datos de tarjeta** |
+| **Pasarela de pago** (cuando se habilite el cobro en línea; hoy no hay ninguna) | Cobro de la membresía | Datos de facturación; **no guardamos datos de tarjeta** |
 
 Además, compartimos datos con **la Clínica** (es la responsable), con autoridades cuando una ley o una orden válida lo exija, y con asesores sujetos a confidencialidad. Si la Plataforma se fusiona o se transfiere, esta política seguirá aplicando a los datos.
 
@@ -92,29 +93,29 @@ Si la Clínica conecta su Google Calendar, pedimos solo los permisos mínimos: *
 
 ## 7. Transferencias internacionales
 
-Nuestros proveedores pueden tratar datos en países distintos al suyo (por ejemplo, Estados Unidos). Cuando la ley lo exige, aplicamos garantías adecuadas, como cláusulas contractuales. [COMPLETAR CON LAS GARANTÍAS REALES DE CADA PROVEEDOR.]
+Nuestros proveedores (ver sección 5) pueden tratar datos fuera de México, por ejemplo en Estados Unidos. Lo hacen **por cuenta nuestra y de la Clínica**, solo para prestar el servicio, y no deciden por su cuenta qué hacer con esos datos. Cada proveedor se rige además por sus propios contratos y condiciones de uso.
 
 ## 8. Cuánto tiempo conservamos los datos
 
 | Dato | Plazo |
 |---|---|
-| Datos de pacientes, citas, conversaciones y notas | Mientras la Clínica sea cliente y [PLAZO TRAS LA BAJA — A DEFINIR]; después se devuelven o se eliminan según el contrato y la ley. |
+| Datos de pacientes, citas, conversaciones y notas | Mientras la Clínica sea cliente. Tras la baja, la Clínica tiene **30 días** para pedir la entrega de sus datos; después los **eliminamos o anonimizamos dentro de los 90 días siguientes**, salvo lo que la ley obligue a conservar (por ejemplo, para determinar posibles responsabilidades hasta su prescripción). |
 | Registros de solicitudes al modelo de IA | 90 días |
 | Eventos técnicos de monitoreo | 30 días |
 | Métricas de uso y costos (sin datos de pacientes) | 400 días |
-| Registro de auditoría del panel | [PLAZO — A DEFINIR; hoy no se borra automáticamente] |
+| Registro de auditoría del panel | 2 años |
 | Datos de facturación | El plazo que exija la ley fiscal aplicable |
 
 ## 9. Seguridad
 
-Aplicamos medidas técnicas y organizativas razonables, entre ellas: conexiones cifradas, **credenciales y tokens guardados cifrados**, contraseñas protegidas con un algoritmo de un solo sentido, **acceso por roles y permisos mínimos**, separación de los datos de cada Clínica, registro de auditoría de las operaciones y respaldos de la base de datos. Ningún sistema es completamente seguro. Si ocurre un incidente que afecte datos personales, lo notificaremos a la Clínica afectada **sin demora indebida y dentro de [PLAZO]**, y colaboraremos para que ella cumpla sus obligaciones.
+Aplicamos medidas técnicas y organizativas razonables, entre ellas: conexiones cifradas, **credenciales y tokens guardados cifrados**, contraseñas protegidas con un algoritmo de un solo sentido, **acceso por roles y permisos mínimos**, separación de los datos de cada Clínica, registro de auditoría de las operaciones y respaldos de la base de datos. Ningún sistema es completamente seguro. Si ocurre un incidente que afecte datos personales, lo notificaremos a la Clínica afectada **sin demora indebida y, en todo caso, dentro de las 24 horas siguientes a que lo conozcamos**, y colaboraremos para que ella cumpla sus obligaciones.
 
 ## 10. Sus derechos y cómo ejercerlos
 
-Según la ley aplicable (en México, los derechos **ARCO**: **A**cceso, **R**ectificación, **C**ancelación y **O**posición), usted puede **acceder** a sus datos, **rectificarlos**, **cancelarlos o suprimirlos**, **oponerse** a su tratamiento, y **revocar su consentimiento**, y reclamar ante la autoridad de protección de datos competente de su país (en México, la Secretaría Anticorrupción y Buen Gobierno [VERIFICAR VIGENCIA]).
+Según la ley aplicable (en México, los derechos **ARCO**: **A**cceso, **R**ectificación, **C**ancelación y **O**posición), usted puede **acceder** a sus datos, **rectificarlos**, **cancelarlos o suprimirlos**, **oponerse** a su tratamiento, y **revocar su consentimiento**, y reclamar ante la autoridad de protección de datos competente de su país (en México, la Secretaría Anticorrupción y Buen Gobierno).
 
 - **Si es paciente**, escriba a su Clínica. Nosotros no decidimos sobre sus datos, pero atenderemos las instrucciones de la Clínica y le responderemos si nos escribe a **avisos@pontic.com.mx**, indicándole a quién dirigirse.
-- **Si es usuario del panel o representante de una Clínica**, escriba a **avisos@pontic.com.mx**. Responderemos dentro de [PLAZO, por ejemplo 30 días].
+- **Si es usuario del panel o representante de una Clínica**, escriba a **avisos@pontic.com.mx**. Responderemos dentro de **veinte días hábiles** desde que recibamos su solicitud (el plazo que fija la ley, ampliable una sola vez por un periodo igual) y, si procede, la haremos efectiva en los **quince días hábiles** siguientes.
 - Podemos pedirle que acredite su identidad.
 
 ## 11. Menores y terceros
@@ -127,7 +128,7 @@ La Clínica puede enviarle por WhatsApp recordatorios de cita, avisos de cambios
 
 ## 13. Cookies
 
-El panel usa **una cookie de sesión estrictamente necesaria** para mantener su ingreso abierto. No usamos cookies de publicidad ni de seguimiento. [AJUSTAR CUANDO EXISTA EL SITIO WEB PÚBLICO Y SUS HERRAMIENTAS DE ANÁLISIS.]
+El panel usa **una cookie de sesión estrictamente necesaria** para mantener su ingreso abierto. No usamos cookies de publicidad ni de seguimiento. El sitio público (portada, política de privacidad y términos) no usa cookies.
 
 ## 14. Cambios a esta política
 
@@ -135,5 +136,5 @@ Podemos actualizarla. Publicaremos la nueva versión con su fecha y, si el cambi
 
 ## 15. Contacto
 
-**Carlos Garcia Ortiz (persona física)** · Colonia Del Valle, Ciudad de México, México · avisos@pontic.com.mx · [TELÉFONO, si corresponde]
-Delegado o responsable de protección de datos: [NOMBRE Y CORREO, si la ley aplicable lo exige]
+**Carlos Garcia Ortiz (persona física)** · Colonia Del Valle, Ciudad de México, México · avisos@pontic.com.mx
+Persona designada para atender las solicitudes de datos personales: Carlos Garcia Ortiz · avisos@pontic.com.mx

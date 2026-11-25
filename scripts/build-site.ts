@@ -6,7 +6,8 @@
  *   npx tsx scripts/build-site.ts --final    # lo mismo, pero FALLA si queda algún campo pendiente (para publicar de verdad)
  *
  * Las páginas generadas se commitean: `docs/` no entra en la imagen de Docker, así que no se pueden generar al construirla.
- * Un borrador lleva un cartel visible y `noindex`; recién sin campos pendientes (y con revisión legal) sale sin ellos.
+ * Un borrador lleva un cartel visible y `noindex`. Es borrador mientras haya campos pendientes **o** el .md conserve la marca
+ * `<!-- revision-legal-pendiente -->`, que solo se quita cuando un abogado revisó el texto: completar los campos no basta.
  * El servidor las sirve en `/`, `/privacidad` y `/terminos` (`src/index.ts`).
  */
 import fs from "node:fs";
@@ -42,7 +43,7 @@ ${params.borrador ? '<meta name="robots" content="noindex">' : ""}
 <nav>${nav}</nav>
 </div></header>
 <main class="ancho">
-${params.borrador ? '<p class="borrador" role="note"><strong>Borrador en revisión.</strong> Este texto todavía no es la versión vigente: los campos resaltados están pendientes.</p>' : ""}
+${params.borrador ? '<p class="borrador" role="note"><strong>Borrador en revisión.</strong> Este texto todavía no es la versión vigente: está pendiente de revisión legal y puede tener campos resaltados por completar.</p>' : ""}
 ${params.cuerpo}
 </main>
 <footer class="pie"><div class="ancho">
@@ -81,6 +82,7 @@ const PORTADA = `
 
 fs.mkdirSync(SALIDA, { recursive: true });
 let pendientes = 0;
+let sinRevision = 0;
 const escribir = (archivo: string, contenido: string) => fs.writeFileSync(path.join(SALIDA, archivo), contenido, "utf8");
 
 escribir(
@@ -98,18 +100,34 @@ for (const doc of [
   { fuente: "politica-de-privacidad.md", archivo: "privacidad.html", titulo: "Política de privacidad — Pontic", ruta: "/privacidad" },
   { fuente: "terminos-de-servicio.md", archivo: "terminos.html", titulo: "Términos de servicio — Pontic", ruta: "/terminos" },
 ]) {
-  const md = fs.readFileSync(path.join(RAIZ, "docs", "legal", doc.fuente), "utf8");
+  const crudo = fs.readFileSync(path.join(RAIZ, "docs", "legal", doc.fuente), "utf8");
+  const pendienteDeRevision = /<!--\s*revision-legal-pendiente/.test(crudo);
+  // Los comentarios HTML son notas para quien edita: no se publican ni cuentan como campos.
+  const md = crudo.replace(/<!--[\s\S]*?-->\n?/g, "");
   const faltan = findPlaceholders(md);
   pendientes += faltan.length;
+  if (pendienteDeRevision) sinRevision += 1;
   if (faltan.length > 0) console.log(`${doc.fuente}: ${faltan.length} campo(s) pendiente(s):\n  - ${faltan.join("\n  - ")}`);
+  if (pendienteDeRevision) console.log(`${doc.fuente}: pendiente de revisión legal (marca revision-legal-pendiente).`);
   escribir(
     doc.archivo,
-    pagina({ titulo: doc.titulo, descripcion: doc.titulo, cuerpo: markdownToHtml(md), actual: doc.ruta, borrador: faltan.length > 0 })
+    pagina({
+      titulo: doc.titulo,
+      descripcion: doc.titulo,
+      cuerpo: markdownToHtml(md),
+      actual: doc.ruta,
+      borrador: faltan.length > 0 || pendienteDeRevision,
+    })
   );
 }
 
-console.log(pendientes === 0 ? "Sitio generado sin campos pendientes." : `Sitio generado como BORRADOR: ${pendientes} campo(s) pendiente(s).`);
-if (final && pendientes > 0) {
-  console.error("--final: no se puede publicar con campos pendientes.");
+const hayBorrador = pendientes > 0 || sinRevision > 0;
+console.log(
+  hayBorrador
+    ? `Sitio generado con BORRADOR: ${pendientes} campo(s) pendiente(s) y ${sinRevision} documento(s) sin revisión legal.`
+    : "Sitio generado sin borradores."
+);
+if (final && hayBorrador) {
+  console.error("--final: no se puede publicar con campos pendientes ni sin la revisión legal.");
   process.exit(1);
 }

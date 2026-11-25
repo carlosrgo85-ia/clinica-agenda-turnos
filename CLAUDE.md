@@ -2186,7 +2186,8 @@ pendiente (ver "Funcionalidades futuras"): conviene moverlas a un sitio aparte c
 - **La fuente son `docs/legal/*.md`** (lo que se edita y se revisa con el abogado). `npx tsx scripts/build-site.ts` las convierte con
   `services/markdown-lite.ts` (un convertidor mínimo, sin dependencias) y escribe `public/site/*.html`. **Las páginas generadas se commitean**:
   `docs/` no entra en la imagen de Docker (`.dockerignore`), así que no se pueden generar al construirla. Si se edita un `.md`, hay que volver a generar y commitear.
-- **Con campos `[ENTRE CORCHETES]` pendientes salen como BORRADOR**: cartel visible, campos resaltados y `noindex`. `--final` **falla** si queda alguno:
+- **Salen como BORRADOR (cartel visible, `noindex`) con campos `[ENTRE CORCHETES]` pendientes O mientras el `.md` conserve la marca `<!-- revision-legal-pendiente -->`**
+  (un comentario que no se publica y que solo se quita cuando un abogado revisó el texto: completar los campos no basta). `--final` **falla** si queda alguna de las dos cosas:
   se usa para publicar de verdad, y solo con revisión legal. **No pedir la verificación de Google con un borrador.**
 - Datos ya cargados: plataforma «Pontic», correo `avisos@pontic.com.mx`, alojamiento Render, correo GoDaddy (Titan). **Faltan**: nombre legal completo del proveedor,
   domicilio (el aviso de privacidad de la LFPDPPP exige identidad y domicilio del responsable), fecha de vigencia, plazos, jurisdicción y datos fiscales de los términos.
@@ -3311,8 +3312,8 @@ y **no bloquea la salida**. Ninguno está diseñado todavía; lo anotado son los
   enmascarado, por ser un dato personal). Considerar también registrar el user agent (ya se
   guarda) y un identificador de sesión para los cambios desde el panel.
 - **Auditoría: otros pendientes (2026-11-13).** (1) **Política de retención**: `AuditLog` no se
-  borra nunca; hay que decidir cuánto se conserva (lo habitual es 1 a 2 años mínimo) y hacer el
-  job que la aplique con `app.audit_maintenance`. (2) **Los jobs que modifican datos y no son del CRM** (el sync de
+  borra nunca. **Decidido el 2026-11-25: 2 años** (la ley privada mexicana no fija un mínimo para este registro; lo habitual es 1 a 2) y ya figura así
+  en la política de privacidad, pero **el job que lo aplique todavía no existe** (con `app.audit_maintenance`): hay que hacerlo antes de publicar la política. (2) **Los jobs que modifican datos y no son del CRM** (el sync de
   calendario, los avisos que marcan "ya se avisó") no tienen registro de auditoría: revisar
   cuáles lo necesitan.
   (3) **Nada de lo anterior al 2026-11-13**: las cancelaciones y reagendados previos no se pueden

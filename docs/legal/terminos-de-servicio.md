@@ -1,6 +1,7 @@
 # Términos de Servicio
+<!-- revision-legal-pendiente: se quita SOLO cuando un abogado revisó este texto; mientras esté, la página sale como borrador -->
 
-**Pontic** · Versión 0.1 (borrador) · Vigente desde: [FECHA]
+**Pontic** · Versión 0.1 · Vigente desde: 25 de noviembre de 2026
 
 Estos términos regulan el uso de la plataforma de **Carlos Garcia Ortiz (persona física)** (el "**Proveedor**") por parte de la clínica, consultorio o negocio que la contrata (el "**Cliente**" o la "**Clínica**"). Al crear una cuenta, usar el servicio o aceptar una propuesta que los mencione, el Cliente declara que **tiene facultades para obligar a su organización** y acepta estos términos y la [Política de Privacidad](politica-de-privacidad.md).
 
@@ -28,7 +29,7 @@ El servicio **no es un sistema de historia clínica, de emergencias ni de atenci
 
 El Cliente es **responsable del uso que haga del servicio** y, en particular:
 
-1. **Datos de sus pacientes.** Es el **responsable del tratamiento** de los datos de sus pacientes. Debe contar con una base legal y, **tratándose de datos de salud (datos sensibles), con el consentimiento que exija la ley aplicable (en México, el que establece la Ley Federal de Protección de Datos Personales en Posesión de los Particulares) [VERIFICAR FORMA: expreso y por escrito]**, y **informarles mediante su aviso de privacidad** que sus mensajes son atendidos por un asistente de inteligencia artificial, que se comparten con proveedores externos (WhatsApp/Meta y el proveedor del modelo de IA) y, si corresponde, que se registran para su atención. Debe publicar su propio aviso de privacidad.
+1. **Datos de sus pacientes.** Es el **responsable del tratamiento** de los datos de sus pacientes. Debe contar con una base legal y, **tratándose de datos de salud (datos sensibles), con el consentimiento que exija la ley aplicable (en México, el que establece la Ley Federal de Protección de Datos Personales en Posesión de los Particulares) — para los datos de salud, **expreso y por escrito**, mediante firma autógrafa, firma electrónica o cualquier mecanismo de autenticación (art. 8 de esa ley) —**, y **informarles mediante su aviso de privacidad** que sus mensajes son atendidos por un asistente de inteligencia artificial, que se comparten con proveedores externos (WhatsApp/Meta y el proveedor del modelo de IA) y, si corresponde, que se registran para su atención. Debe publicar su propio aviso de privacidad.
 2. **Configuración correcta.** Cargar y mantener al día sus horarios, feriados, servicios, profesionales, espacios, criterios de urgencia, precios y promociones. El asistente solo puede ofrecer lo que esté configurado; **una configuración incompleta o errónea produce citas o respuestas erróneas**.
 3. **Atender las derivaciones.** Cuando el asistente deriva un caso a una persona (urgencias, quejas, preguntas que no puede responder), el Cliente se obliga a **recibir el aviso y atenderlo con diligencia**. Debe mantener cargado el destinatario de esos avisos.
 4. **Cuenta de WhatsApp.** Cumplir las condiciones y políticas de **WhatsApp Business y de Meta**, mantener su cuenta y sus plantillas, y no usar el servicio para enviar mensajes no solicitados, engañosos o de terceros. Los mensajes que la Clínica inicia deben respetar la voluntad de los pacientes de no ser contactados.
@@ -108,6 +109,6 @@ Este anexo aplica a los datos personales de pacientes que el Proveedor trata com
 6. **Subencargados.** El Cliente **autoriza** a los proveedores listados en la sección 5 de la Política de Privacidad. El Proveedor avisará de **cambios** con [PLAZO] de antelación y el Cliente podrá oponerse por motivos razonables; cada subencargado queda sujeto a obligaciones equivalentes.
 7. **Transferencias internacionales.** Autorizadas con las garantías de la sección 7 de la Política de Privacidad.
 8. **Derechos de los titulares.** El Proveedor **asistirá** al Cliente, con medidas técnicas razonables, para responder a las solicitudes de acceso, rectificación, supresión u otras; si un titular le escribe directamente, lo **derivará al Cliente**.
-9. **Incidentes.** El Proveedor notificará al Cliente **sin demora indebida y dentro de [PLAZO]** tras conocer un incidente que afecte datos personales, con la información de que disponga.
+9. **Incidentes.** El Proveedor notificará al Cliente **sin demora indebida y, en todo caso, dentro de las 24 horas siguientes** a conocer un incidente que afecte datos personales, con la información de que disponga.
 10. **Auditoría.** El Proveedor pondrá a disposición del Cliente la información razonable para demostrar el cumplimiento y permitirá auditorías, **no más de una vez al año** y con aviso previo, salvo incidente. [AJUSTAR.]
 11. **Fin del contrato.** Devolución o eliminación de los datos según la sección 12.
