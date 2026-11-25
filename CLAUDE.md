@@ -158,6 +158,11 @@ alcanzaba para mandar WhatsApps en su nombre.
   repositorio y no en la ruta a propósito: si dependiera de que cada handler
   se acuerde, el próximo endpoint lo filtra. Lo que necesita el token pide
   `findClinicWithWhatsAppCreds()`, que es explícito.
+- **El token se valida al guardarlo y no aparece en los errores** (2026-11-25). Se pegó junto al token el rótulo de Meta ("…identificador de
+  mensajes 2908…") y Meta lo rechazó recién al leer las plantillas con `Malformed access token`, **devolviendo el token entero dentro del
+  mensaje**, que terminó en pantalla. Ahora `whatsAppTokenError()` rechaza al guardar (alta y `PUT`) un token con espacios o saltos de línea o de
+  largo raro, y `redactTokens()` (`services/whatsapp-token.ts`) tapa cualquier `EA…` largo en los errores de Graph (plantillas y envíos) antes de
+  mostrarlos, loguearlos o registrarlos. Un token que ya se mostró en pantalla o en un chat hay que **regenerarlo en Meta**.
 - La clave pasó a ser necesaria para operar, no solo para los calendarios:
   sin ella no se puede descifrar el token y no sale ningún mensaje.
 

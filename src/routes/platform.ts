@@ -16,6 +16,7 @@ import { auditFiltersFromQuery, listAudit } from "../services/audit";
 import { getMonitoringSnapshot, listSystemEvents } from "../services/monitoring";
 import { isValidLeadMinutes } from "../services/lead-time";
 import { normalizeTaxId } from "../services/tax-id";
+import { whatsAppTokenError } from "../services/whatsapp-token";
 import { normalizePostalCode, postalCodeError } from "../services/postal-code";
 import { prisma } from "../db/client";
 import { isValidServiceNoun } from "../services/service-noun";
@@ -164,6 +165,12 @@ platformRouter.post("/clinics", requirePermission(PERMISSIONS.CLINICAS_CREAR), a
   const missing = Object.entries(requiredFields).filter(([, v]) => typeof v !== "string" || !v);
   if (missing.length > 0) {
     res.status(400).json({ error: `Faltan campos: ${missing.map(([k]) => k).join(", ")}` });
+    return;
+  }
+
+  const problemaToken = whatsAppTokenError(whatsappToken);
+  if (problemaToken) {
+    res.status(400).json({ error: problemaToken });
     return;
   }
 
@@ -389,6 +396,14 @@ platformRouter.put("/clinics/:id", requirePermission(PERMISSIONS.CLINICAS_EDITAR
       error: "`serviceNoun` tiene que ser un texto de una línea, de hasta 30 caracteres (ej. \"tratamiento\").",
     });
     return;
+  }
+  // Un token con espacios (se copió el rótulo de Meta junto al token) se rechaza al guardar, no al primer envío.
+  if (typeof b.whatsappToken === "string" && b.whatsappToken.trim()) {
+    const problemaToken = whatsAppTokenError(b.whatsappToken);
+    if (problemaToken) {
+      res.status(400).json({ error: problemaToken });
+      return;
+    }
   }
   // El código postal se valida según el país de la clínica (en México, 5 dígitos): el del body, o el que ya tiene.
   if (b.billingPostalCode !== undefined && b.billingPostalCode !== null && b.billingPostalCode !== "") {

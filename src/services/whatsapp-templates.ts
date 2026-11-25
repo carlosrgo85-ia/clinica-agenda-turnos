@@ -1,4 +1,5 @@
 import { GRAPH_API_BASE } from "./whatsapp";
+import { redactTokens } from "./whatsapp-token";
 
 /**
  * Alta de las plantillas de WhatsApp en el WABA de una clínica.
@@ -251,15 +252,17 @@ async function createTemplate(
       name: template.name,
       outcome: "error",
       error:
-        [payload.error?.message, detalle, payload.error?.error_subcode && `(subcódigo ${payload.error.error_subcode})`]
-          .filter(Boolean)
-          .join(" — ") || `Meta devolvió ${response.status}`,
+        redactTokens(
+          [payload.error?.message, detalle, payload.error?.error_subcode && `(subcódigo ${payload.error.error_subcode})`]
+            .filter(Boolean)
+            .join(" — ")
+        ) || `Meta devolvió ${response.status}`,
     };
   } catch (error) {
     return {
       name: template.name,
       outcome: "error",
-      error: error instanceof Error ? error.message : "Error desconocido",
+      error: error instanceof Error ? redactTokens(error.message) : "Error desconocido",
     };
   }
 }
@@ -281,7 +284,7 @@ export async function templateStatuses(
   );
 
   if (!response.ok) {
-    throw new Error(`No se pudieron leer las plantillas: ${await response.text()}`);
+    throw new Error(`No se pudieron leer las plantillas: ${redactTokens(await response.text())}`);
   }
 
   const payload = (await response.json()) as {

@@ -1,5 +1,6 @@
 import { decryptToken } from "./crypto";
 import { recordWhatsAppSend } from "./costs";
+import { redactTokens } from "./whatsapp-token";
 
 /**
  * Todas las funciones reciben el token y el phoneNumberId de la clínica
@@ -76,7 +77,7 @@ async function postMessage(
   // que el mensaje salió.
   if (!response.ok) {
     throw new Error(
-      `WhatsApp devolvió ${response.status} al enviar a ${payload.to}: ${await response.text()}`
+      `WhatsApp devolvió ${response.status} al enviar a ${payload.to}: ${redactTokens(await response.text())}`
     );
   }
 }
