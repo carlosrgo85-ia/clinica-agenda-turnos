@@ -57,6 +57,22 @@ async function resolveToFinalUrl(url: string): Promise<string> {
 }
 
 /**
+ * Google responde a las IPs de centros de datos (como las de Render) con una página
+ * de verificación anti-robots (`google.com/sorry/...`) o de consentimiento
+ * (`consent.google.com`). Esas URL también traen un parámetro `q`, pero es un código
+ * ilegible: tomarlo como nombre del negocio busca algo que no existe y el error
+ * ("no se encontró el negocio") manda a mirar donde no es.
+ */
+export function isGoogleBlockPage(finalUrl: string): boolean {
+  try {
+    const u = new URL(finalUrl);
+    return u.hostname === "consent.google.com" || /^\/sorry(\/|$)/.test(u.pathname);
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Un link corto de "compartir" de Google puede resolver a dos formas
  * distintas según de dónde se lo compartió, y las dos hay que cubrirlas:
  *
@@ -71,7 +87,7 @@ async function resolveToFinalUrl(url: string): Promise<string> {
  * Si ninguna de las dos matchea, se devuelve todo en null y quien llama
  * lo reporta como error explícito en vez de adivinar.
  */
-function extractNameAndLocation(finalUrl: string): { name: string | null; lat: number | null; lng: number | null } {
+export function extractNameAndLocation(finalUrl: string): { name: string | null; lat: number | null; lng: number | null } {
   const mapsMatch = finalUrl.match(/\/maps\/place\/([^/]+)\/@(-?\d+\.\d+),(-?\d+\.\d+)/);
   if (mapsMatch) {
     return {
@@ -79,6 +95,13 @@ function extractNameAndLocation(finalUrl: string): { name: string | null; lat: n
       lat: Number(mapsMatch[2]),
       lng: Number(mapsMatch[3]),
     };
+  }
+
+  // Un link de Maps copiado de la barra de direcciones a veces no trae el `@lat,lng`
+  // (según cómo se abrió la ficha): el nombre solo igual sirve para buscar.
+  const placeOnly = finalUrl.match(/\/maps\/place\/([^/@?]+)/);
+  if (placeOnly) {
+    return { name: decodeURIComponent(placeOnly[1].replace(/\+/g, " ")), lat: null, lng: null };
   }
 
   try {
@@ -156,6 +179,14 @@ export async function fetchGoogleBusinessData(url: string): Promise<GoogleBusine
   const apiKey = requireApiKey();
 
   const finalUrl = await resolveToFinalUrl(url);
+  if (isGoogleBlockPage(finalUrl)) {
+    // Solo host y ruta: la URL completa puede traer identificadores que no hace falta guardar.
+    const u = new URL(finalUrl);
+    console.warn(`[google-places] Google bloqueó el acceso desde el servidor (${u.hostname}${u.pathname}).`);
+    throw new Error(
+      "Google no dejó leer ese link desde el servidor (lo trata como tráfico automático). Pega el link completo de Google Maps: ábrelo en Maps, haz clic en la ficha del negocio y copia la dirección de la barra del navegador (empieza con https://www.google.com/maps/place/...)."
+    );
+  }
   const { name, lat, lng } = extractNameAndLocation(finalUrl);
   if (!name) {
     throw new Error(
@@ -165,7 +196,11 @@ export async function fetchGoogleBusinessData(url: string): Promise<GoogleBusine
 
   const placeId = await findPlaceId(apiKey, name, lat, lng);
   if (!placeId) {
-    throw new Error("No se encontró el negocio en Google con ese link.");
+    // El nombre buscado va en el mensaje: si no se parece al del negocio, el problema es el link y no la clave.
+    console.warn(`[google-places] Sin resultados para «${name}»${lat !== null ? " (con coordenadas)" : ""}.`);
+    throw new Error(
+      `No se encontró en Google un negocio llamado «${name}». Si el nombre no es el de la clínica, pega el link completo de Google Maps en lugar del acortado.`
+    );
   }
 
   return fetchPlaceDetails(apiKey, placeId);

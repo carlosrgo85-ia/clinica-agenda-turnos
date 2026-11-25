@@ -2272,6 +2272,12 @@ zona horaria (`timeZone.id`, directo de Google — no hace falta inferirla
 de la ciudad) salen del mismo `Place Details`. El país solo se completa
 si coincide con uno ya cargado en "Países"; si no, se deja como estaba.
 
+**Desde Render el link acortado puede fallar (2026-11-25).** Con un `share.google` en producción dio "No se encontró el negocio" aunque
+la clave y el link andaban bien desde otra red. Hipótesis (sin confirmar con los logs de Render): Google responde a la IP del centro de datos
+con su página anti-robots (`google.com/sorry/...`), cuyo `q` es un código ilegible que se buscaba como nombre. Ahora `isGoogleBlockPage()` lo
+detecta y pide pegar el **link completo de Maps** (`/maps/place/<Nombre>/@lat,lng`, que no depende de ninguna redirección), el mensaje de "no se
+encontró" nombra lo que se buscó, y un link de Maps sin `@lat,lng` también sirve. Tests: `tests/google-places.test.ts`.
+
 Los selectores de "País" y "Zona horaria" en estas pantallas necesitaron
 dos ajustes puntuales a Radix Select para poder prellenarse así — ver
 "gotcha" en la sección del selector de zona horaria, un poco más abajo:
