@@ -2189,7 +2189,7 @@ pendiente (ver "Funcionalidades futuras"): conviene moverlas a un sitio aparte c
 - **Salen como BORRADOR (cartel visible, `noindex`) con campos `[ENTRE CORCHETES]` pendientes O mientras el `.md` conserve la marca `<!-- revision-legal-pendiente -->`**
   (un comentario que no se publica y que solo se quita cuando un abogado revisó el texto: completar los campos no basta). `--final` **falla** si queda alguna de las dos cosas:
   se usa para publicar de verdad, y solo con revisión legal. **No pedir la verificación de Google con un borrador.**
-  **Estado (2026-11-25):** la política de privacidad **se publicó sin revisión legal por decisión del dueño** (sin marca, versión 1.0); los términos conservan la marca.
+  **Estado (2026-11-25):** la política de privacidad y los términos **se publicaron sin revisión legal por decisión del dueño** (sin marca, versión 1.0). Para volver a marcar uno como borrador, restituir el comentario `<!-- revision-legal-pendiente -->` al principio de su `.md` y regenerar.
 - Datos ya cargados: plataforma «Pontic», correo `avisos@pontic.com.mx`, alojamiento Render, correo GoDaddy (Titan). **Faltan**: nombre legal completo del proveedor,
   domicilio (el aviso de privacidad de la LFPDPPP exige identidad y domicilio del responsable), fecha de vigencia, plazos, jurisdicción y datos fiscales de los términos.
 - Es estático: no toca la base ni expone ninguna API.

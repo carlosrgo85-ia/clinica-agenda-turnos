@@ -1,7 +1,6 @@
 # Términos de Servicio
-<!-- revision-legal-pendiente: se quita SOLO cuando un abogado revisó este texto; mientras esté, la página sale como borrador -->
 
-**Pontic** · Versión 0.1 · Vigente desde: 25 de noviembre de 2026
+**Pontic** · Versión 1.0 · Vigente desde: 25 de noviembre de 2026
 
 Estos términos regulan el uso de la plataforma de **Carlos Garcia Ortiz (persona física)** (el "**Proveedor**") por parte de la clínica, consultorio o negocio que la contrata (el "**Cliente**" o la "**Clínica**"). Al crear una cuenta, usar el servicio o aceptar una propuesta que los mencione, el Cliente declara que **tiene facultades para obligar a su organización** y acepta estos términos y la [Política de Privacidad](politica-de-privacidad.md).
 
