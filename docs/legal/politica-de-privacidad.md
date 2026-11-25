@@ -2,7 +2,7 @@
 
 **Pontic** · Versión 0.1 (borrador) · Vigente desde: [FECHA]
 
-Esta política explica qué datos personales trata **[NOMBRE LEGAL DEL PROVEEDOR: persona física o sociedad]** ("**nosotros**" o "la **Plataforma**") al prestar su servicio de asistente de WhatsApp para la gestión de citas, para qué los usa, con quién los comparte y qué derechos tiene usted.
+Esta política explica qué datos personales trata **Carlos Garcia Ortiz (persona física)** ("**nosotros**" o "la **Plataforma**") al prestar su servicio de asistente de WhatsApp para la gestión de citas, para qué los usa, con quién los comparte y qué derechos tiene usted.
 
 ## 1. A quién se aplica y quién es responsable de qué
 
@@ -135,5 +135,5 @@ Podemos actualizarla. Publicaremos la nueva versión con su fecha y, si el cambi
 
 ## 15. Contacto
 
-**[NOMBRE LEGAL DEL PROVEEDOR: persona física o sociedad]** · [DOMICILIO] · avisos@pontic.com.mx · [TELÉFONO, si corresponde]
+**Carlos Garcia Ortiz (persona física)** · Colonia Del Valle, Ciudad de México, México · avisos@pontic.com.mx · [TELÉFONO, si corresponde]
 Delegado o responsable de protección de datos: [NOMBRE Y CORREO, si la ley aplicable lo exige]

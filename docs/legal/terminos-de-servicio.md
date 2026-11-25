@@ -2,7 +2,7 @@
 
 **Pontic** · Versión 0.1 (borrador) · Vigente desde: [FECHA]
 
-Estos términos regulan el uso de la plataforma de **[NOMBRE LEGAL DEL PROVEEDOR: persona física o sociedad]** (el "**Proveedor**") por parte de la clínica, consultorio o negocio que la contrata (el "**Cliente**" o la "**Clínica**"). Al crear una cuenta, usar el servicio o aceptar una propuesta que los mencione, el Cliente declara que **tiene facultades para obligar a su organización** y acepta estos términos y la [Política de Privacidad](politica-de-privacidad.md).
+Estos términos regulan el uso de la plataforma de **Carlos Garcia Ortiz (persona física)** (el "**Proveedor**") por parte de la clínica, consultorio o negocio que la contrata (el "**Cliente**" o la "**Clínica**"). Al crear una cuenta, usar el servicio o aceptar una propuesta que los mencione, el Cliente declara que **tiene facultades para obligar a su organización** y acepta estos términos y la [Política de Privacidad](politica-de-privacidad.md).
 
 ## 1. El servicio
 
@@ -88,11 +88,11 @@ El Cliente mantendrá indemne al Proveedor frente a reclamos de terceros (inclui
 
 ## 15. Ley aplicable y jurisdicción
 
-Estos términos se rigen por las leyes de [PAÍS/JURISDICCIÓN]. Las partes intentarán resolver las diferencias de buena fe y, de no lograrlo, se someten a los tribunales de [CIUDAD, PAÍS] [O ARBITRAJE: ENTIDAD Y SEDE]. Si alguna cláusula fuera inválida, el resto seguirá vigente.
+Estos términos se rigen por las leyes de México. Las partes intentarán resolver las diferencias de buena fe y, de no lograrlo, se someten a los tribunales de la Ciudad de México, México [O ARBITRAJE: ENTIDAD Y SEDE]. Si alguna cláusula fuera inválida, el resto seguirá vigente.
 
 ## 16. Contacto
 
-**[NOMBRE LEGAL DEL PROVEEDOR: persona física o sociedad]** · [DOMICILIO] · avisos@pontic.com.mx · [RFC / IDENTIFICACIÓN FISCAL]
+**Carlos Garcia Ortiz (persona física)** · Colonia Del Valle, Ciudad de México, México · avisos@pontic.com.mx · [RFC / IDENTIFICACIÓN FISCAL]
 
 ---
 
