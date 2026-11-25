@@ -1626,7 +1626,7 @@ número y ninguno adicional). Lo guarda `applyBookingPhones()` (`repositories/pa
 ## Presentación del asistente y aviso de privacidad (2026-11-20)
 
 Dos mensajes que el asistente manda **por código** (no por el prompt: un link que el modelo reescribe puede salir mal, y esto no puede
-depender de que el modelo lo mencione), cada uno **una sola vez por ficha titular** de la conversación, como mensaje APARTE
+depender de que el modelo lo mencione), cada uno **una sola vez por ficha titular** de la conversación, **dentro de la respuesta y no como mensaje aparte** (2026-11-25)
 (`services/privacy-notice.ts`; `agent-turn.ts` → `enviarAvisosUnaVez()`):
 
 1. **Presentación, al comienzo de la primera respuesta:** *"Le atiende el asistente virtual de {clínica}."* (`Patient.assistantIntroSentAt`). **Va en el MISMO mensaje que la respuesta, separada por una línea en blanco** (2026-11-25: antes era un mensaje aparte y salían dos juntos; molestaba y cada uno cuenta como un mensaje de WhatsApp): `reclamarPresentacion()` en `agent-turn.ts`. Si el envío falla, la marca se libera y la próxima respuesta la lleva.
@@ -1636,18 +1636,18 @@ depender de que el modelo lo mencione), cada uno **una sola vez por ficha titula
    tono legal). El prompt lo refuerza ("HONESTIDAD SOBRE QUIÉN ERES": nunca niega ser un asistente virtual ni usa nombre de persona).
    Cualquier cambio que haga al asistente parecer una persona (nombre propio, frases como "mi consultorio") choca con esto: revisarlo
    contra la política de uso y la regla transversal 3.
-2. **Aviso de privacidad, en el SEGUNDO mensaje de la persona (no en el primero, para no abrumar):** *"Mientras tanto, le dejamos el aviso
+2. **Aviso de privacidad, al final de la respuesta al SEGUNDO mensaje de la persona (no en el primero, para no abrumar; en el mismo mensaje que la respuesta, 2026-11-25):** *"Mientras tanto, le dejamos el aviso
    de privacidad de {clínica}: {link}"* (`Patient.privacyNoticeSentAt`). El link es `Clinic.privacyNoticeUrl` (https, hasta 500
    caracteres, `isValidPrivacyNoticeUrl()`), lo carga el super-admin en el detalle de la clínica. **Sin link no se manda nada y la marca no se
    pone**: cuando se cargue, lo recibe quien todavía no lo tenía. `config-health` avisa (advertencia) si falta (`sin_aviso_de_privacidad`).
    La clínica es la responsable de los datos de sus pacientes. **A confirmar con un abogado** que llegue en el segundo mensaje y no al recoger el
    primer dato (el primer mensaje ya puede traer datos de salud).
 
-Común a los dos: la marca se **reclama antes de mandar** (UPDATE condicionado a null: dos mensajes a la vez no duplican) y **se libera si el
+Común a los dos (`reclamarPresentacion()` / `reclamarAvisoDePrivacidad()` en `agent-turn.ts`; el texto final es presentación + respuesta + aviso, separados por una línea en blanco): la marca se **reclama antes de mandar** (UPDATE condicionado a null: dos mensajes a la vez no duplican) y **se libera si el
 envío falla** para reintentar en el próximo mensaje; **nunca tumban el turno**; son mensajes de respuesta (ventana de 24 h, sin plantilla de Meta);
-van de usted; quedan en el historial de la conversación y en la auditoría (`patient.assistant_intro_sent`, `patient.privacy_notice_sent`, origen
-`whatsapp`, sin el link ni el teléfono). **El Chat de pruebas no los manda por WhatsApp pero los MUESTRA como notas** («Al paciente real se le mandaría, antes de la primera
-respuesta: …» / «…después de esta respuesta: …»), y en el segundo mensaje avisa **por qué no salió el aviso si la clínica no cargó el link** (es la
+van de usted; quedan en el historial de la conversación (dentro del mensaje del asistente) y en la auditoría (`patient.assistant_intro_sent`, `patient.privacy_notice_sent`, origen
+`whatsapp`, sin el link ni el teléfono). **El Chat de pruebas no los manda por WhatsApp pero los MUESTRA como notas** («Al paciente real se le mandaría, al comienzo de la primera
+respuesta: …» / «…al final de esta respuesta: …»), y en el segundo mensaje avisa **por qué no salió el aviso si la clínica no cargó el link** (es la
 causa más común de «no me mandó el link»); la marca se reclama igual y se borra al reiniciar. Las fichas que ya existían (incluidas las importadas) los reciben la próxima vez que escriban.
 
 **Lo que NO resuelve:** el consentimiento para datos de salud. Los mensajes informan y enlazan; no afirman que la persona "acepte" nada. Si la ley

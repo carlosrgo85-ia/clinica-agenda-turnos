@@ -1015,13 +1015,12 @@ describe("presentación del asistente y aviso de privacidad", () => {
     expect(f.privacyNoticeSentAt).toBeNull();
   });
 
-  it("el segundo mensaje: la respuesta y después el aviso de privacidad; del tercero en adelante, nada", async () => {
+  it("el segundo mensaje: UN solo mensaje, la respuesta y al final el aviso de privacidad; del tercero en adelante, nada", async () => {
     const c = await fichaNueva(URL);
     await turno(c, "Hola");
     const segundo = await turno(c, "Quiero una cita", "Con gusto, reviso la agenda.");
-    expect(segundo).toHaveLength(2);
-    expect(segundo[0]).toBe("Con gusto, reviso la agenda.");
-    expect(segundo[1]).toBe(`Mientras tanto, le dejamos el aviso de privacidad de ${c.clinic.name}: ${URL}`);
+    expect(segundo).toHaveLength(1);
+    expect(segundo[0]).toBe(`Con gusto, reviso la agenda.\n\nMientras tanto, le dejamos el aviso de privacidad de ${c.clinic.name}: ${URL}`);
     expect(await turno(c, "Gracias")).toEqual(["Claro."]);
   });
 
@@ -1030,9 +1029,9 @@ describe("presentación del asistente y aviso de privacidad", () => {
     await turno(c, "Hola");
     await turno(c, "Quiero una cita");
     const hist = await prisma.conversationMessage.findMany({ where: { clinicId: c.clinic.id }, orderBy: { createdAt: "asc" } });
-    expect(hist.map((m) => m.role)).toEqual(["patient", "assistant", "patient", "assistant", "assistant"]);
+    expect(hist.map((m) => m.role)).toEqual(["patient", "assistant", "patient", "assistant"]);
     expect(hist[1].content).toMatch(/asistente virtual/);
-    expect(hist[4].content).toContain(URL);
+    expect(hist[3].content).toContain(URL);
 
     const filas = await prisma.auditLog.findMany({
       where: { clinicId: c.clinic.id, action: { in: ["patient.assistant_intro_sent", "patient.privacy_notice_sent"] } },
@@ -1053,7 +1052,7 @@ describe("presentación del asistente y aviso de privacidad", () => {
     await prisma.clinic.update({ where: { id: c.clinic.id }, data: { privacyNoticeUrl: URL } });
     const c2 = { ...c, clinic: { ...c.clinic, privacyNoticeUrl: URL } };
     const tercero = await turno(c2, "¿Sigue ahí?");
-    expect(tercero[1]).toContain(URL);
+    expect(tercero[0]).toContain(URL);
   });
 
   it("dos mensajes a la vez de la misma persona: la presentación sale una sola vez", async () => {
@@ -1089,7 +1088,7 @@ describe("presentación del asistente y aviso de privacidad", () => {
     await runAgentTurn({ clinic: c.clinic, patient: c.patient, from: c.patient.phone, text: "Quiero una cita" }, f.deps);
     expect(f.llamadas.enviados.filter((m) => /asistente virtual|aviso de privacidad/.test(m))).toHaveLength(0);
     expect(notas.some((n) => /al comienzo de la primera respuesta: «Le atiende el asistente virtual/.test(n))).toBe(true);
-    expect(notas.some((n) => n.includes(URL) && /después de esta respuesta/.test(n))).toBe(true);
+    expect(notas.some((n) => n.includes(URL) && /al final de esta respuesta/.test(n))).toBe(true);
     // Nada queda en el historial como si se hubiera mandado.
     const hist = await prisma.conversationMessage.findMany({ where: { clinicId: c.clinic.id, role: "assistant" } });
     expect(hist.some((m) => /asistente virtual|aviso de privacidad/.test(m.content))).toBe(false);
