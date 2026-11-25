@@ -140,7 +140,7 @@ describe("hablar con el asistente desde el panel", () => {
     expect(r.json).toMatchObject({ respuestas: ["Hola, ¿en qué te ayudo?"], citas: [] });
     // La única nota es lo que se le mandaría al paciente real antes de la primera respuesta (nada sale de verdad).
     expect(r.json.notas).toHaveLength(1);
-    expect(r.json.notas[0]).toMatch(/Al paciente real se le mandaría, antes de la primera respuesta: «Le atiende el asistente virtual/);
+    expect(r.json.notas[0]).toMatch(/Al paciente real se le mandaría, al comienzo de la primera respuesta: «Le atiende el asistente virtual/);
     expect(r.json.decisiones).toHaveLength(1);
     expect(r.json.decisiones[0]).toMatchObject({ intent: "otro", derivar: false });
     expect(externo.send).not.toHaveBeenCalled();

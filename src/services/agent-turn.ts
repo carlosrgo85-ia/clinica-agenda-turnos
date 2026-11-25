@@ -1072,20 +1072,39 @@ export async function runAgentTurn(
     role: "patient",
     content: text,
   });
-  // La primera vez, antes de la respuesta: quién lo atiende (`services/privacy-notice.ts`).
-  await enviarAvisosUnaVez({ clinic, patient, from, deps, cual: "presentacion" });
+  // La primera vez, quién lo atiende (`services/privacy-notice.ts`): va al comienzo de la MISMA respuesta y no como un
+  // mensaje aparte (2026-11-25: dos mensajes juntos molestaban y cada uno cuenta como un mensaje de WhatsApp).
+  const presentacion = await reclamarPresentacion({ clinic, patient, deps });
+  const textoAlPaciente = presentacion
+    ? `${presentacion}\n\n${agentResponse.respuesta_al_paciente}`
+    : agentResponse.respuesta_al_paciente;
 
   await appendConversationMessage({
     clinicId: clinic.id,
     patientPhone: from,
     role: "assistant",
-    content: agentResponse.respuesta_al_paciente,
+    content: textoAlPaciente,
   });
 
-  await deps.send(clinicWhatsAppCreds(clinic), from, agentResponse.respuesta_al_paciente);
+  try {
+    await deps.send(clinicWhatsAppCreds(clinic), from, textoAlPaciente);
+  } catch (error) {
+    // No salió: la marca se libera para que la próxima respuesta lleve la presentación.
+    if (presentacion) await prisma.patient.updateMany({ where: { id: patient.id }, data: { assistantIntroSentAt: null } }).catch(() => undefined);
+    throw error;
+  }
+  if (presentacion) {
+    await recordSystemAudit({
+      origin: "whatsapp",
+      clinicId: clinic.id,
+      action: "patient.assistant_intro_sent",
+      resourceType: "patient",
+      resourceId: patient.id,
+    });
+  }
 
   // En su segundo mensaje (no en el primero), el link al aviso de privacidad de la clínica.
-  await enviarAvisosUnaVez({ clinic, patient, from, deps, cual: "aviso_de_privacidad" });
+  await enviarAvisosUnaVez({ clinic, patient, from, deps });
 
   // Va después de la respuesta y no antes: la confirmación del turno es lo
   // que el paciente está esperando leer, la dirección es el complemento. Si
@@ -1106,10 +1125,39 @@ export async function runAgentTurn(
 }
 
 /**
- * Los dos mensajes que el asistente manda por su cuenta, una sola vez por persona (`services/privacy-notice.ts`):
- *
- * - `presentacion`: antes de la primera respuesta, que lo atiende un asistente virtual.
- * - `aviso_de_privacidad`: el link al aviso de la clínica, **a partir de su segundo mensaje** y solo si la clínica cargó el link.
+ * La presentación ("Le atiende el asistente virtual de …"), una sola vez por persona. Devuelve el texto que va al comienzo de la
+ * primera respuesta, o null si no corresponde (ya se le dijo, o es el chat de pruebas, que la muestra como nota). Reclama la marca
+ * ANTES de enviar (UPDATE condicionado a null: dos turnos a la vez no la duplican); quien envía la libera si el envío falla.
+ * No se puede apagar: ver "Presentación del asistente y aviso de privacidad" en CLAUDE.md. Nunca tumba el turno.
+ */
+async function reclamarPresentacion(params: {
+  clinic: ClinicWithCalendarAccount;
+  patient: Patient;
+  deps: AgentTurnDeps;
+}): Promise<string | null> {
+  const { clinic, patient, deps } = params;
+  try {
+    const mensaje = buildAssistantIntroMessage(clinic);
+    const reclamo = await prisma.patient.updateMany({
+      where: { id: patient.id, clinicId: clinic.id, assistantIntroSentAt: null },
+      data: { assistantIntroSentAt: new Date() },
+    });
+    if (reclamo.count === 0) return null;
+    if (deps.sandbox) {
+      deps.sandbox.notas.push(`Al paciente real se le mandaría, al comienzo de la primera respuesta: «${mensaje}»`);
+      return null;
+    }
+    return mensaje;
+  } catch (error) {
+    console.error(`No se pudo preparar la presentación del asistente (clínica ${clinic.id}):`, error);
+    return null;
+  }
+}
+
+/**
+ * El aviso de privacidad: un mensaje aparte con el link al aviso de la clínica, una sola vez por persona
+ * (`services/privacy-notice.ts`), **a partir de su segundo mensaje** y solo si la clínica cargó el link. (La presentación del
+ * asistente ya no es un mensaje aparte: va al comienzo de la primera respuesta, ver `reclamarPresentacion()`.)
  *
  * **Una sola vez**: se RECLAMA la marca antes de mandar (UPDATE condicionado a null, así dos turnos a la vez no lo duplican) y se
  * libera si el envío falla para reintentarlo en el próximo mensaje. **Nunca puede tumbar el turno.** Se audita (origen `whatsapp`),
@@ -1120,31 +1168,25 @@ async function enviarAvisosUnaVez(params: {
   patient: Patient;
   from: string;
   deps: AgentTurnDeps;
-  cual: "presentacion" | "aviso_de_privacidad";
 }): Promise<void> {
-  const { clinic, patient, from, deps, cual } = params;
-  const campo = cual === "presentacion" ? "assistantIntroSentAt" : "privacyNoticeSentAt";
+  const { clinic, patient, from, deps } = params;
+  const campo = "privacyNoticeSentAt";
   try {
-    let mensaje: string | null;
-    if (cual === "presentacion") {
-      mensaje = buildAssistantIntroMessage(clinic);
-    } else {
-      mensaje = buildPrivacyNoticeMessage(clinic);
-      // Solo desde su segundo mensaje: el actual ya está en el historial, así que hay que contar al menos dos.
-      const mensajesDeLaPersona = await prisma.conversationMessage.count({
-        where: { clinicId: clinic.id, patientPhone: from, role: "patient" },
-      });
-      if (mensajesDeLaPersona < 2) return;
-      if (!mensaje) {
-        // Sin link no hay qué mostrar, y la marca no se pone: lo recibirá cuando se cargue. En el chat de pruebas se avisa
-        // POR QUÉ no salió (es la causa más común de "no me mandó el aviso"), una sola vez.
-        if (deps.sandbox && mensajesDeLaPersona === 2) {
-          deps.sandbox.notas.push(
-            "Al paciente real todavía no se le mandaría el aviso de privacidad: la clínica no cargó el link (detalle de la clínica → «Link del aviso de privacidad»)."
-          );
-        }
-        return;
+    const mensaje = buildPrivacyNoticeMessage(clinic);
+    // Solo desde su segundo mensaje: el actual ya está en el historial, así que hay que contar al menos dos.
+    const mensajesDeLaPersona = await prisma.conversationMessage.count({
+      where: { clinicId: clinic.id, patientPhone: from, role: "patient" },
+    });
+    if (mensajesDeLaPersona < 2) return;
+    if (!mensaje) {
+      // Sin link no hay qué mostrar, y la marca no se pone: lo recibirá cuando se cargue. En el chat de pruebas se avisa
+      // POR QUÉ no salió (es la causa más común de "no me mandó el aviso"), una sola vez.
+      if (deps.sandbox && mensajesDeLaPersona === 2) {
+        deps.sandbox.notas.push(
+          "Al paciente real todavía no se le mandaría el aviso de privacidad: la clínica no cargó el link (detalle de la clínica → «Link del aviso de privacidad»)."
+        );
       }
+      return;
     }
 
     const reclamo = await prisma.patient.updateMany({
@@ -1155,11 +1197,7 @@ async function enviarAvisosUnaVez(params: {
 
     if (deps.sandbox) {
       // Chat de pruebas: no sale nada por WhatsApp ni queda en el historial; se muestra como lo que SE LE MANDARÍA al paciente real.
-      deps.sandbox.notas.push(
-        cual === "presentacion"
-          ? `Al paciente real se le mandaría, antes de la primera respuesta: «${mensaje}»`
-          : `Al paciente real se le mandaría, después de esta respuesta: «${mensaje}»`
-      );
+      deps.sandbox.notas.push(`Al paciente real se le mandaría, después de esta respuesta: «${mensaje}»`);
     } else {
       try {
         await appendConversationMessage({ clinicId: clinic.id, patientPhone: from, role: "assistant", content: mensaje });
@@ -1172,12 +1210,12 @@ async function enviarAvisosUnaVez(params: {
     await recordSystemAudit({
       origin: "whatsapp",
       clinicId: clinic.id,
-      action: cual === "presentacion" ? "patient.assistant_intro_sent" : "patient.privacy_notice_sent",
+      action: "patient.privacy_notice_sent",
       resourceType: "patient",
       resourceId: patient.id,
     });
   } catch (error) {
-    console.error(`No se pudo enviar el mensaje "${cual}" (clínica ${clinic.id}):`, error);
+    console.error(`No se pudo enviar el aviso de privacidad (clínica ${clinic.id}):`, error);
   }
 }
 

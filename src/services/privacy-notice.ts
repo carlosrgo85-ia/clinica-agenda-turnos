@@ -6,7 +6,7 @@ import type { Clinic } from "@prisma/client";
  * **una sola vez por persona**, y son mensajes de respuesta (la persona escribió primero): entran en la ventana de 24 h y no
  * necesitan plantilla de Meta. Van de usted.
  *
- * 1. **Quién atiende** (`buildAssistantIntroMessage`): antes de la primera respuesta, una línea corta: lo atiende un asistente
+ * 1. **Quién atiende** (`buildAssistantIntroMessage`): al comienzo de la primera respuesta (en el mismo mensaje), una línea corta: lo atiende un asistente
  *    virtual. Es un requisito de la política de uso de Anthropic para los chatbots que hablan con clientes ("debe avisarse al
  *    menos al comienzo de cada sesión de chat"), y no hacerlo pone en riesgo la cuenta del modelo de TODAS las clínicas. Por eso
  *    está en código y no se puede apagar por clínica. Se mantiene breve y sin tono legal para no asustar a nadie.

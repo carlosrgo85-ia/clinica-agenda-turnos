@@ -1629,7 +1629,7 @@ Dos mensajes que el asistente manda **por código** (no por el prompt: un link q
 depender de que el modelo lo mencione), cada uno **una sola vez por ficha titular** de la conversación, como mensaje APARTE
 (`services/privacy-notice.ts`; `agent-turn.ts` → `enviarAvisosUnaVez()`):
 
-1. **Presentación, antes de la primera respuesta:** *"Le atiende el asistente virtual de {clínica}."* (`Patient.assistantIntroSentAt`).
+1. **Presentación, al comienzo de la primera respuesta:** *"Le atiende el asistente virtual de {clínica}."* (`Patient.assistantIntroSentAt`). **Va en el MISMO mensaje que la respuesta, separada por una línea en blanco** (2026-11-25: antes era un mensaje aparte y salían dos juntos; molestaba y cada uno cuenta como un mensaje de WhatsApp): `reclamarPresentacion()` en `agent-turn.ts`. Si el envío falla, la marca se libera y la próxima respuesta la lleva.
    **No se puede apagar ni quitar**: la política de uso de Anthropic exige que los chatbots que hablan con clientes avisen que son una IA
    (*"al menos al comienzo de cada sesión de chat o en la interfaz del producto"*) y prohíbe hacerse pasar por una persona; incumplirlo pone en
    riesgo la cuenta del modelo, que es la de TODAS las clínicas (se pidió no decirlo, el 2026-11-20, y se mantuvo por esto: se acortó y se quitó el

@@ -1004,12 +1004,11 @@ describe("presentación del asistente y aviso de privacidad", () => {
     return f.llamadas.enviados;
   };
 
-  it("el primer mensaje: primero quién lo atiende (una línea) y luego la respuesta; NO el link todavía", async () => {
+  it("el primer mensaje: UN solo mensaje, con quién lo atiende al comienzo y luego la respuesta; NO el link todavía", async () => {
     const c = await fichaNueva(URL);
     const enviados = await turno(c, "Hola", "Hola, ¿en qué le ayudo?");
-    expect(enviados).toHaveLength(2);
-    expect(enviados[0]).toMatch(/^Le atiende el asistente virtual de /);
-    expect(enviados[1]).toBe("Hola, ¿en qué le ayudo?");
+    expect(enviados).toHaveLength(1);
+    expect(enviados[0]).toBe(`Le atiende el asistente virtual de ${c.clinic.name}.\n\nHola, ¿en qué le ayudo?`);
     expect(enviados.join(" ")).not.toContain(URL);
     const f = await prisma.patient.findUniqueOrThrow({ where: { id: c.patient.id } });
     expect(f.assistantIntroSentAt).not.toBeNull();
@@ -1031,9 +1030,9 @@ describe("presentación del asistente y aviso de privacidad", () => {
     await turno(c, "Hola");
     await turno(c, "Quiero una cita");
     const hist = await prisma.conversationMessage.findMany({ where: { clinicId: c.clinic.id }, orderBy: { createdAt: "asc" } });
-    expect(hist.map((m) => m.role)).toEqual(["patient", "assistant", "assistant", "patient", "assistant", "assistant"]);
+    expect(hist.map((m) => m.role)).toEqual(["patient", "assistant", "patient", "assistant", "assistant"]);
     expect(hist[1].content).toMatch(/asistente virtual/);
-    expect(hist[5].content).toContain(URL);
+    expect(hist[4].content).toContain(URL);
 
     const filas = await prisma.auditLog.findMany({
       where: { clinicId: c.clinic.id, action: { in: ["patient.assistant_intro_sent", "patient.privacy_notice_sent"] } },
@@ -1069,20 +1068,16 @@ describe("presentación del asistente y aviso de privacidad", () => {
     expect(presentaciones).toHaveLength(1);
   });
 
-  it("si falla el envío de la presentación, la respuesta sale igual y la marca se libera para reintentar", async () => {
+  it("si falla el envío, la marca de la presentación se libera y la próxima respuesta la lleva", async () => {
     const c = await fichaNueva(URL);
     const { deps, llamadas } = fakeDeps();
-    const original = deps.send;
-    let n = 0;
-    deps.send = (async (...args: Parameters<AgentTurnDeps["send"]>) => {
-      n += 1;
-      if (n === 1) throw new Error("Meta caído"); // el primer envío es la presentación
-      return original(...args);
+    deps.send = (async () => {
+      throw new Error("Meta caído");
     }) as AgentTurnDeps["send"];
-    await expect(runAgentTurn({ clinic: c.clinic, patient: c.patient, from: c.patient.phone, text: "Hola" }, deps)).resolves.toBeUndefined();
-    expect(llamadas.enviados).toHaveLength(1); // salió la respuesta al paciente
+    await expect(runAgentTurn({ clinic: c.clinic, patient: c.patient, from: c.patient.phone, text: "Hola" }, deps)).rejects.toThrow("Meta caído");
+    expect(llamadas.enviados).toHaveLength(0);
     expect((await prisma.patient.findUniqueOrThrow({ where: { id: c.patient.id } })).assistantIntroSentAt).toBeNull();
-    expect((await turno(c, "Hola otra vez"))[0]).toMatch(/asistente virtual/);
+    expect((await turno(c, "Hola otra vez"))[0]).toMatch(/^Le atiende el asistente virtual/);
   });
 
   it("el chat de pruebas no manda nada por WhatsApp, pero lo muestra como notas (y explica por qué falta el aviso si no hay link)", async () => {
@@ -1093,7 +1088,7 @@ describe("presentación del asistente y aviso de privacidad", () => {
     await runAgentTurn({ clinic: c.clinic, patient: c.patient, from: c.patient.phone, text: "Hola" }, f.deps);
     await runAgentTurn({ clinic: c.clinic, patient: c.patient, from: c.patient.phone, text: "Quiero una cita" }, f.deps);
     expect(f.llamadas.enviados.filter((m) => /asistente virtual|aviso de privacidad/.test(m))).toHaveLength(0);
-    expect(notas.some((n) => /antes de la primera respuesta: «Le atiende el asistente virtual/.test(n))).toBe(true);
+    expect(notas.some((n) => /al comienzo de la primera respuesta: «Le atiende el asistente virtual/.test(n))).toBe(true);
     expect(notas.some((n) => n.includes(URL) && /después de esta respuesta/.test(n))).toBe(true);
     // Nada queda en el historial como si se hubiera mandado.
     const hist = await prisma.conversationMessage.findMany({ where: { clinicId: c.clinic.id, role: "assistant" } });
