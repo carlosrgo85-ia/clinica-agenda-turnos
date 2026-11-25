@@ -43,7 +43,7 @@ Guardar `CALENDAR_TOKEN_ENCRYPTION_KEY` en un lugar seguro aparte: si se pierde,
 Las credenciales de OAuth de Google y de Microsoft **no** van al `.env`: se cargan en la app, en Catálogos → Secretos.
 
 ### `TRUST_PROXY_HOPS`
-Sin esto, la IP que ve el servidor es la del proxy: el límite de intentos de login cuenta a todos como una sola persona y la auditoría guarda una IP que no es la del usuario. Es la cantidad de proxies **entre el usuario y la app**: **En Render la cantidad real es 2**: Render mismo está detrás de Cloudflare (el 2026-11-24, con 1, Auditoría guardaba IPs `172.71.x.x`, que son de Cloudflare y cambian en cada evento). Si además el dominio propio pasa por Cloudflare con proxy naranja, probar con 3. Mal puesto, `X-Forwarded-For` se puede falsificar. Después de desplegar, entrar al panel y comprobar en Auditoría que la IP guardada es la tuya.
+Sin esto, la IP que ve el servidor es la del proxy: el límite de intentos de login cuenta a todos como una sola persona y la auditoría guarda una IP que no es la del usuario. Es la cantidad de proxies **entre el usuario y la app**: **En Render la cantidad real es 3** (verificado el 2026-11-25 con la URL `onrender.com`, sin dominio propio): con 1, Auditoría guardaba IPs `172.71.x.x` (de Cloudflare, que cambian en cada evento); con 2, una IP interna `10.x.x.x` de Render; con 3, la IP pública real. **Si se conecta un dominio propio con el proxy naranja de Cloudflare, puede cambiar** (un salto más): volver a comprobarlo. Mal puesto, `X-Forwarded-For` se puede falsificar. Después de desplegar, entrar al panel y comprobar en Auditoría que la IP guardada es la tuya.
 
 ## 4. Base de datos
 Las migraciones corren solas antes de cada despliegue (`preDeployCommand: npx prisma migrate deploy`). La primera vez, además, **una sola vez** y desde una consola del servicio web:
@@ -57,7 +57,7 @@ Hay migraciones que tocan datos (ver "Todavía no hay ambientes…" en CLAUDE.md
 
 ## 5. Dominio (Cloudflare como DNS)
 1. En Render, agregar el dominio propio al servicio web; muestra un `CNAME`.
-2. En Cloudflare → DNS, crear ese `CNAME`. Empezar con el proxy **desactivado** (nube gris) hasta que el certificado esté emitido; después se puede activar (y ajustar `TRUST_PROXY_HOPS` a 2).
+2. En Cloudflare → DNS, crear ese `CNAME`. Empezar con el proxy **desactivado** (nube gris) hasta que el certificado esté emitido; después se puede activar (y volver a comprobar `TRUST_PROXY_HOPS`: hoy vale 3 con la URL de Render).
 3. Comprobar `https://tu-dominio/health` → `ok`.
 
 ## 6. Meta (WhatsApp)
