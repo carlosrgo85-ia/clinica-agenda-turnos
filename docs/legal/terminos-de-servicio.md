@@ -19,8 +19,8 @@ El servicio **no es un sistema de historia clínica, de emergencias ni de atenci
 
 ## 3. Planes, precios y pago
 
-- Los planes, sus funcionalidades y precios son los que el Proveedor comunica al Cliente al contratar. El precio acordado se **congela para ese Cliente** y no cambia por una actualización posterior de la lista de precios, salvo aviso con [PLAZO, por ejemplo 30 días] de anticipación para el siguiente período.
-- Los precios [NO INCLUYEN / INCLUYEN] impuestos. Se facturan [PERIODICIDAD] en [MONEDA]. [FORMA DE PAGO — A DEFINIR: transferencia, tarjeta, domiciliación.]
+- Los planes, sus funcionalidades y precios son los que el Proveedor comunica al Cliente al contratar. El precio acordado se **congela para ese Cliente** y no cambia por una actualización posterior de la lista de precios, salvo aviso con **30 días** de anticipación para el siguiente período.
+- Los precios **incluyen el IVA**; cualquier otro impuesto adicional se agrega al precio. Se cobran **mensualmente**, en **pesos mexicanos**. **Solo se emite factura si el Cliente la solicita.** La forma de pago prevista es la **domiciliación a tarjeta de crédito**; si el Cliente necesita otra forma de pago, puede solicitarla y se le informará si está disponible.
 - **Costos de terceros no incluidos.** La Clínica es titular de su propia cuenta de WhatsApp Business (WABA). **Meta cobra directamente a la Clínica** los mensajes de plantilla según su tarifa, y esa tarifa y su clasificación (utilidad, marketing) las decide Meta. Lo mismo vale para el uso de cuentas propias de Google o Microsoft.
 - Si un pago no se recibe, el Proveedor avisará y dará un plazo razonable antes de suspender el servicio (ver sección 13).
 - Un período de **prueba o piloto**, si lo hay, se rige por lo acordado por escrito y puede incluir funcionalidades limitadas.
@@ -60,40 +60,40 @@ Está prohibido: usar el servicio para fines ilícitos o para enviar spam; inten
 
 ## 9. Confidencialidad
 
-Cada parte mantendrá en reserva la información confidencial de la otra y la usará solo para cumplir este contrato, salvo que una ley o autoridad exija revelarla. Las obligaciones subsisten [PLAZO] tras la terminación.
+Cada parte mantendrá en reserva la información confidencial de la otra y la usará solo para cumplir este contrato, salvo que una ley o autoridad exija revelarla. Las obligaciones subsisten **dos años** tras la terminación; la reserva sobre los **datos personales** subsiste sin límite de tiempo.
 
 ## 10. Disponibilidad y soporte
 
-El Proveedor procurará mantener el servicio disponible, pero **no garantiza que sea ininterrumpido ni libre de errores**. Pueden ocurrir interrupciones por mantenimiento o por fallas propias o de terceros. [OBJETIVO DE DISPONIBILIDAD Y HORARIOS DE SOPORTE — A DEFINIR; si no se comprometen, decir que se presta "en la medida de lo posible".] El Cliente debe tener un **plan alterno** para atender a sus pacientes si el servicio no estuviera disponible.
+El Proveedor procurará mantener el servicio disponible, pero **no garantiza que sea ininterrumpido ni libre de errores**. Pueden ocurrir interrupciones por mantenimiento o por fallas propias o de terceros. El soporte se presta por correo electrónico a avisos@pontic.com.mx, en días hábiles y **en la medida de lo posible**: no se compromete un porcentaje de disponibilidad ni un tiempo de respuesta. El Cliente debe tener un **plan alterno** para atender a sus pacientes si el servicio no estuviera disponible.
 
 ## 11. Cambios en el servicio y en los términos
 
-El Proveedor puede mejorar, modificar o discontinuar funcionalidades. Si un cambio perjudica de modo sustancial al Cliente, avisará con [PLAZO] de anticipación. Los términos pueden actualizarse; los cambios importantes se avisarán por correo o en el panel, y el uso posterior implica su aceptación. Si el Cliente no está de acuerdo, puede terminar el contrato (sección 12).
+El Proveedor puede mejorar, modificar o discontinuar funcionalidades. Si un cambio perjudica de modo sustancial al Cliente, avisará con **30 días** de anticipación. Los términos pueden actualizarse; los cambios importantes se avisarán por correo o en el panel, y el uso posterior implica su aceptación. Si el Cliente no está de acuerdo, puede terminar el contrato (sección 12).
 
 ## 12. Duración, suspensión y terminación
 
-- El contrato rige desde la aceptación y se renueva [CRITERIO: mensual / anual] hasta que una parte lo termine con [PLAZO, por ejemplo 30 días] de aviso por escrito.
+- El contrato rige desde la aceptación y se renueva automáticamente por períodos iguales al del plan contratado (hoy, mensual; anual cuando se ofrezcan planes anuales) hasta que una parte lo termine con **30 días** de aviso por escrito; la terminación surte efecto al final del período ya pagado.
 - El Proveedor puede **suspender el servicio** por falta de pago (previo aviso y plazo), por uso prohibido o riesgo de seguridad, o por orden de autoridad. **Procurará avisar antes**, dado que la suspensión deja sin atención al asistente de la Clínica.
-- **Al terminar**, el Cliente puede pedir la **entrega de sus datos** en un formato estándar dentro de los [PLAZO] siguientes; luego el Proveedor los eliminará o anonimizará, salvo lo que la ley obligue a conservar. [CONFIRMAR EL MECANISMO REAL DE EXPORTACIÓN ANTES DE PROMETERLO.]
+- **Al terminar**, el Cliente puede pedir la **entrega de sus datos** en un archivo **CSV** dentro de los **30 días** siguientes; luego el Proveedor los eliminará o anonimizará dentro de los **90 días** siguientes, salvo lo que la ley obligue a conservar.
 - Sobreviven a la terminación las cláusulas que por su naturaleza deban hacerlo (confidencialidad, responsabilidad, ley aplicable).
 
 ## 13. Garantías y limitación de responsabilidad
 
 - El servicio se presta **"tal como está"**. Salvo lo expresamente dicho aquí o lo que la ley no permita excluir, el Proveedor **no ofrece garantías** de resultado, de aptitud para un fin particular ni de que el asistente capte o convierta una cantidad determinada de pacientes.
 - **En la máxima medida permitida por la ley**, el Proveedor **no responde por daños indirectos, lucro cesante, pérdida de pacientes, de oportunidades o de reputación**, ni por **decisiones sanitarias**, ni por hechos de **terceros** o de **fuerza mayor**.
-- La responsabilidad total del Proveedor frente al Cliente, por cualquier causa, **se limita a lo pagado por el Cliente en los [12] meses anteriores** al hecho. [AJUSTAR SEGÚN LA LEY APLICABLE; esta limitación no aplica al dolo ni a lo que la ley no permita limitar.]
+- La responsabilidad total del Proveedor frente al Cliente, por cualquier causa, **se limita a lo pagado por el Cliente en los 12 meses anteriores** al hecho. Esta limitación no aplica al **dolo** (cuya renuncia la ley declara nula) ni a lo que la ley no permita limitar.
 
 ## 14. Indemnidad
 
-El Cliente mantendrá indemne al Proveedor frente a reclamos de terceros (incluidos pacientes y autoridades) derivados de: el contenido o los datos que el Cliente cargó o trató **sin base legal o sin informar a los pacientes**, el incumplimiento de las políticas de WhatsApp o de la ley por parte del Cliente, o su atención sanitaria. El Proveedor hará lo propio respecto de reclamos de que el software, usado como se indica, infringe derechos de propiedad intelectual de terceros. [REVISAR ALCANCE Y RECIPROCIDAD.]
+El Cliente mantendrá indemne al Proveedor frente a reclamos de terceros (incluidos pacientes y autoridades) derivados de: el contenido o los datos que el Cliente cargó o trató **sin base legal o sin informar a los pacientes**, el incumplimiento de las políticas de WhatsApp o de la ley por parte del Cliente, o su atención sanitaria. El Proveedor hará lo propio respecto de reclamos de que el software, usado como se indica, infringe derechos de propiedad intelectual de terceros. La parte que reciba un reclamo lo avisará a la otra sin demora, le permitirá dirigir la defensa y colaborará razonablemente.
 
 ## 15. Ley aplicable y jurisdicción
 
-Estos términos se rigen por las leyes de México. Las partes intentarán resolver las diferencias de buena fe y, de no lograrlo, se someten a los tribunales de la Ciudad de México, México [O ARBITRAJE: ENTIDAD Y SEDE]. Si alguna cláusula fuera inválida, el resto seguirá vigente.
+Estos términos se rigen por las leyes de México. Las partes intentarán resolver las diferencias de buena fe y, de no lograrlo, se someten a los tribunales de la Ciudad de México, México. Si alguna cláusula fuera inválida, el resto seguirá vigente.
 
 ## 16. Contacto
 
-**Carlos Garcia Ortiz (persona física)** · Rodríguez Saro 631, Colonia Del Valle, C.P. 03104, Ciudad de México, México · avisos@pontic.com.mx · [RFC / IDENTIFICACIÓN FISCAL]
+**Carlos Garcia Ortiz (persona física)** · Rodríguez Saro 631, Colonia Del Valle, C.P. 03104, Ciudad de México, México · avisos@pontic.com.mx
 
 ---
 
@@ -106,9 +106,9 @@ Este anexo aplica a los datos personales de pacientes que el Proveedor trata com
 3. **Instrucciones.** El Proveedor trata los datos **solo según las instrucciones documentadas del Cliente** (este contrato y la configuración que él mismo hace) y no los usa para fines propios.
 4. **Confidencialidad.** El personal del Proveedor con acceso está obligado a confidencialidad y accede solo si lo necesita.
 5. **Seguridad.** Medidas descritas en la sección 9 de la Política de Privacidad, apropiadas al riesgo de los datos de salud.
-6. **Subencargados.** El Cliente **autoriza** a los proveedores listados en la sección 5 de la Política de Privacidad. El Proveedor avisará de **cambios** con [PLAZO] de antelación y el Cliente podrá oponerse por motivos razonables; cada subencargado queda sujeto a obligaciones equivalentes.
+6. **Subencargados.** El Cliente **autoriza** a los proveedores listados en la sección 5 de la Política de Privacidad. El Proveedor avisará de **cambios** con **30 días** de antelación y el Cliente podrá oponerse por motivos razonables; cada subencargado queda sujeto a obligaciones equivalentes.
 7. **Transferencias internacionales.** Autorizadas con las garantías de la sección 7 de la Política de Privacidad.
 8. **Derechos de los titulares.** El Proveedor **asistirá** al Cliente, con medidas técnicas razonables, para responder a las solicitudes de acceso, rectificación, supresión u otras; si un titular le escribe directamente, lo **derivará al Cliente**.
 9. **Incidentes.** El Proveedor notificará al Cliente **sin demora indebida y, en todo caso, dentro de las 24 horas siguientes** a conocer un incidente que afecte datos personales, con la información de que disponga.
-10. **Auditoría.** El Proveedor pondrá a disposición del Cliente la información razonable para demostrar el cumplimiento y permitirá auditorías, **no más de una vez al año** y con aviso previo, salvo incidente. [AJUSTAR.]
+10. **Auditoría.** El Proveedor pondrá a disposición del Cliente la información razonable para demostrar el cumplimiento y permitirá auditorías, **no más de una vez al año** y con **30 días** de aviso previo, salvo incidente. La auditoría se limita a la documentación y a un cuestionario por escrito (sin acceso a los datos de otras clínicas ni a los sistemas), corre por cuenta del Cliente y queda sujeta a confidencialidad.
 11. **Fin del contrato.** Devolución o eliminación de los datos según la sección 12.

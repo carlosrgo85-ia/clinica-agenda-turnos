@@ -1,7 +1,6 @@
 # Política de Privacidad
-<!-- revision-legal-pendiente: se quita SOLO cuando un abogado revisó este texto; mientras esté, la página sale como borrador -->
 
-**Pontic** · Versión 0.1 · Vigente desde: 25 de noviembre de 2026
+**Pontic** · Versión 1.0 · Vigente desde: 25 de noviembre de 2026
 
 Esta política explica qué datos personales trata **Carlos Garcia Ortiz (persona física)** ("**nosotros**" o "la **Plataforma**") al prestar su servicio de asistente de WhatsApp para la gestión de citas, para qué los usa, con quién los comparte y qué derechos tiene usted.
 
