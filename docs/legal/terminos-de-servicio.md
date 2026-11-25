@@ -1,6 +1,6 @@
 # Términos de Servicio
 
-**[NOMBRE DE LA PLATAFORMA]** · Versión 0.1 (borrador) · Vigente desde: [FECHA]
+**Pontic** · Versión 0.1 (borrador) · Vigente desde: [FECHA]
 
 Estos términos regulan el uso de la plataforma de **[NOMBRE LEGAL DEL PROVEEDOR: persona física o sociedad]** (el "**Proveedor**") por parte de la clínica, consultorio o negocio que la contrata (el "**Cliente**" o la "**Clínica**"). Al crear una cuenta, usar el servicio o aceptar una propuesta que los mencione, el Cliente declara que **tiene facultades para obligar a su organización** y acepta estos términos y la [Política de Privacidad](politica-de-privacidad.md).
 
@@ -92,7 +92,7 @@ Estos términos se rigen por las leyes de [PAÍS/JURISDICCIÓN]. Las partes inte
 
 ## 16. Contacto
 
-**[NOMBRE LEGAL DEL PROVEEDOR: persona física o sociedad]** · [DOMICILIO] · [CORREO DE CONTACTO Y SOPORTE] · [RFC / IDENTIFICACIÓN FISCAL]
+**[NOMBRE LEGAL DEL PROVEEDOR: persona física o sociedad]** · [DOMICILIO] · avisos@pontic.com.mx · [RFC / IDENTIFICACIÓN FISCAL]
 
 ---
 

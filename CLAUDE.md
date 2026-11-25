@@ -2177,6 +2177,21 @@ Sidebar, el menú móvil y el buscador (los tres filtran con el MISMO `filterNav
 - **Siguiente paso posible:** una insignia con la cantidad de pendientes en "Por atender", y acciones directas en el buscador ("Nueva cita"),
   que necesitan enlaces profundos que hoy no existen.
 
+## Sitio público mínimo: portada, privacidad y términos (2026-11-25)
+
+Google (verificación de la app de OAuth) y Meta exigen páginas **públicas, sin login, en un dominio propio**. El servidor web las sirve en `/`
+(portada), `/privacidad` y `/terminos` (`src/index.ts`), como archivos estáticos de `public/site/`. Son una **primera versión** del sitio comercial
+pendiente (ver "Funcionalidades futuras"): conviene moverlas a un sitio aparte cuando exista, y cambiar las URL en Google y Meta.
+
+- **La fuente son `docs/legal/*.md`** (lo que se edita y se revisa con el abogado). `npx tsx scripts/build-site.ts` las convierte con
+  `services/markdown-lite.ts` (un convertidor mínimo, sin dependencias) y escribe `public/site/*.html`. **Las páginas generadas se commitean**:
+  `docs/` no entra en la imagen de Docker (`.dockerignore`), así que no se pueden generar al construirla. Si se edita un `.md`, hay que volver a generar y commitear.
+- **Con campos `[ENTRE CORCHETES]` pendientes salen como BORRADOR**: cartel visible, campos resaltados y `noindex`. `--final` **falla** si queda alguno:
+  se usa para publicar de verdad, y solo con revisión legal. **No pedir la verificación de Google con un borrador.**
+- Datos ya cargados: plataforma «Pontic», correo `avisos@pontic.com.mx`, alojamiento Render, correo GoDaddy (Titan). **Faltan**: nombre legal completo del proveedor,
+  domicilio (el aviso de privacidad de la LFPDPPP exige identidad y domicilio del responsable), fecha de vigencia, plazos, jurisdicción y datos fiscales de los términos.
+- Es estático: no toca la base ni expone ninguna API.
+
 ## Panel de plataforma (solo super-admin)
 
 Las pantallas de plataforma no son de una clínica: son visibles solo para un

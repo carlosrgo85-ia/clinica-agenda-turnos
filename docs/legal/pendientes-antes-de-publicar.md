@@ -53,3 +53,8 @@ Hoy detrás de la plataforma hay **una persona que ofrece servicios de desarroll
 - **Contrato con la clínica piloto:** aunque sea un piloto, firmarlo por escrito: qué se entrega, qué datos se tratan (anexo de tratamiento de datos de los términos), que el piloto no es un servicio con garantía de disponibilidad, quién responde de qué, y cómo se termina y se devuelven los datos.
 - **Protección de datos:** la ley de datos personales aplica también a personas físicas. El Proveedor es **encargado** de los datos de pacientes (la clínica es la responsable) y **responsable** de los datos de sus propios usuarios y clientes; necesita su propio aviso de privacidad (la política de este directorio lo es) con un domicilio y un correo reales.
 - **Continuidad:** con una sola persona detrás hay un riesgo de continuidad (enfermedad, ausencia). Considerar un respaldo documentado: accesos de emergencia guardados con una persona de confianza y un procedimiento mínimo de recuperación.
+
+## 9. Publicación en el sitio (2026-11-25)
+- Las páginas `/privacidad` y `/terminos` ya existen en el servidor (ver "Sitio público mínimo" en `CLAUDE.md`), generadas desde estos `.md`. Mientras queden campos `[ENTRE CORCHETES]` salen como **borrador** (cartel y `noindex`).
+- Para publicarlas de verdad: completar los campos (nombre legal completo, domicilio, fecha, plazos, jurisdicción, datos fiscales), **revisión con un abogado**, `npx tsx scripts/build-site.ts --final` y commitear. Después, cargar `https://app.pontic.com.mx/privacidad` en Google Cloud (marca) y en Meta.
+- El correo de privacidad y de contacto es `avisos@pontic.com.mx`: tiene que haber quien lo lea (ahí llegan las solicitudes ARCO).

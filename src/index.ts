@@ -53,6 +53,17 @@ const frontendDist = path.resolve(process.cwd(), "frontend", "dist");
 app.use("/app", express.static(frontendDist));
 app.get("/app/*", (_req, res) => res.sendFile(path.join(frontendDist, "index.html")));
 
+/**
+ * Sitio público: portada, política de privacidad y términos de servicio. Google (verificación de la app de OAuth) y Meta exigen
+ * páginas públicas, sin login, en un dominio propio. Son archivos estáticos ya generados (`scripts/build-site.ts`, a partir de
+ * `docs/legal/`) y commiteados; no tocan la base ni exponen ninguna API.
+ */
+const sitio = path.resolve(process.cwd(), "public", "site");
+app.use("/site", express.static(sitio));
+app.get("/", (_req, res) => res.sendFile(path.join(sitio, "index.html")));
+app.get("/privacidad", (_req, res) => res.sendFile(path.join(sitio, "privacidad.html")));
+app.get("/terminos", (_req, res) => res.sendFile(path.join(sitio, "terminos.html")));
+
 app.get("/health", (_req, res) => res.send("ok"));
 
 /**

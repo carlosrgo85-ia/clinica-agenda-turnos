@@ -1,6 +1,6 @@
 # Política de Privacidad
 
-**[NOMBRE DE LA PLATAFORMA]** · Versión 0.1 (borrador) · Vigente desde: [FECHA]
+**Pontic** · Versión 0.1 (borrador) · Vigente desde: [FECHA]
 
 Esta política explica qué datos personales trata **[NOMBRE LEGAL DEL PROVEEDOR: persona física o sociedad]** ("**nosotros**" o "la **Plataforma**") al prestar su servicio de asistente de WhatsApp para la gestión de citas, para qué los usa, con quién los comparte y qué derechos tiene usted.
 
@@ -72,8 +72,8 @@ Usamos proveedores que tratan datos **por nuestra cuenta**, solo para prestar el
 | **Anthropic** | Modelo de inteligencia artificial del asistente | Contenido de la conversación y datos de la ficha, según la sección 4 |
 | **Google** (Calendar, Places) | Reflejar citas en el calendario de la Clínica; completar datos del negocio desde su ficha pública | Datos de la cita; rangos horarios de eventos |
 | **Microsoft** (Outlook / Graph) | Igual, para Clínicas que usan Outlook | Igual |
-| **[PROVEEDOR DE ALOJAMIENTO]** | Alojamiento de la aplicación y de la base de datos | Todos los datos de la Plataforma |
-| **[PROVEEDOR DE CORREO]** | Envío de correos (reportes, avisos, invitaciones) | Destinatario y contenido del aviso |
+| **Render (Render Services, Inc.)** | Alojamiento de la aplicación y de la base de datos | Todos los datos de la Plataforma |
+| **GoDaddy (Professional Email con tecnología de Titan)** | Envío de correos (reportes, avisos, invitaciones) | Destinatario y contenido del aviso |
 | **[PASARELA DE PAGO, cuando exista]** | Cobro de la membresía | Datos de facturación; **no guardamos datos de tarjeta** |
 
 Además, compartimos datos con **la Clínica** (es la responsable), con autoridades cuando una ley o una orden válida lo exija, y con asesores sujetos a confidencialidad. Si la Plataforma se fusiona o se transfiere, esta política seguirá aplicando a los datos.
@@ -113,8 +113,8 @@ Aplicamos medidas técnicas y organizativas razonables, entre ellas: conexiones 
 
 Según la ley aplicable (en México, los derechos **ARCO**: **A**cceso, **R**ectificación, **C**ancelación y **O**posición), usted puede **acceder** a sus datos, **rectificarlos**, **cancelarlos o suprimirlos**, **oponerse** a su tratamiento, y **revocar su consentimiento**, y reclamar ante la autoridad de protección de datos competente de su país (en México, la Secretaría Anticorrupción y Buen Gobierno [VERIFICAR VIGENCIA]).
 
-- **Si es paciente**, escriba a su Clínica. Nosotros no decidimos sobre sus datos, pero atenderemos las instrucciones de la Clínica y le responderemos si nos escribe a **[CORREO DE PRIVACIDAD]**, indicándole a quién dirigirse.
-- **Si es usuario del panel o representante de una Clínica**, escriba a **[CORREO DE PRIVACIDAD]**. Responderemos dentro de [PLAZO, por ejemplo 30 días].
+- **Si es paciente**, escriba a su Clínica. Nosotros no decidimos sobre sus datos, pero atenderemos las instrucciones de la Clínica y le responderemos si nos escribe a **avisos@pontic.com.mx**, indicándole a quién dirigirse.
+- **Si es usuario del panel o representante de una Clínica**, escriba a **avisos@pontic.com.mx**. Responderemos dentro de [PLAZO, por ejemplo 30 días].
 - Podemos pedirle que acredite su identidad.
 
 ## 11. Menores y terceros
@@ -135,5 +135,5 @@ Podemos actualizarla. Publicaremos la nueva versión con su fecha y, si el cambi
 
 ## 15. Contacto
 
-**[NOMBRE LEGAL DEL PROVEEDOR: persona física o sociedad]** · [DOMICILIO] · [CORREO DE PRIVACIDAD] · [TELÉFONO, si corresponde]
+**[NOMBRE LEGAL DEL PROVEEDOR: persona física o sociedad]** · [DOMICILIO] · avisos@pontic.com.mx · [TELÉFONO, si corresponde]
 Delegado o responsable de protección de datos: [NOMBRE Y CORREO, si la ley aplicable lo exige]
