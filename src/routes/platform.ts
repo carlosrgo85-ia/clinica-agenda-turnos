@@ -15,6 +15,7 @@ import { listAgentRequests } from "../services/agent-requests";
 import { auditFiltersFromQuery, listAudit } from "../services/audit";
 import { getMonitoringSnapshot, listSystemEvents } from "../services/monitoring";
 import { isValidLeadMinutes } from "../services/lead-time";
+import { normalizeTaxId } from "../services/tax-id";
 import { prisma } from "../db/client";
 import { isValidServiceNoun } from "../services/service-noun";
 import { isValidPrivacyNoticeUrl } from "../services/privacy-notice";
@@ -441,6 +442,8 @@ platformRouter.put("/clinics/:id", requirePermission(PERMISSIONS.CLINICAS_EDITAR
   for (const campo of camposTexto) {
     if (b[campo] !== undefined) data[campo] = b[campo];
   }
+  // El identificador fiscal se guarda normalizado (mayúsculas, sin espacios de más): ver services/tax-id.ts.
+  if (b.billingTaxId !== undefined) data.billingTaxId = normalizeTaxId(b.billingTaxId);
   if (b.services !== undefined) data.services = b.services;
   if (b.active !== undefined) data.active = b.active;
   if (b.minLeadMinutes !== undefined) data.minLeadMinutes = b.minLeadMinutes;
