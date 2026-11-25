@@ -16,6 +16,7 @@ import { auditFiltersFromQuery, listAudit } from "../services/audit";
 import { getMonitoringSnapshot, listSystemEvents } from "../services/monitoring";
 import { isValidLeadMinutes } from "../services/lead-time";
 import { normalizeTaxId } from "../services/tax-id";
+import { normalizePostalCode, postalCodeError } from "../services/postal-code";
 import { prisma } from "../db/client";
 import { isValidServiceNoun } from "../services/service-noun";
 import { isValidPrivacyNoticeUrl } from "../services/privacy-notice";
@@ -360,6 +361,7 @@ platformRouter.put("/clinics/:id", requirePermission(PERMISSIONS.CLINICAS_EDITAR
     "billingLegalName",
     "billingTaxId",
     "billingAddress",
+    "billingPostalCode",
     "billingEmail",
   ] as const;
   for (const campo of camposTexto) {
@@ -387,6 +389,15 @@ platformRouter.put("/clinics/:id", requirePermission(PERMISSIONS.CLINICAS_EDITAR
       error: "`serviceNoun` tiene que ser un texto de una línea, de hasta 30 caracteres (ej. \"tratamiento\").",
     });
     return;
+  }
+  // El código postal se valida según el país de la clínica (en México, 5 dígitos): el del body, o el que ya tiene.
+  if (b.billingPostalCode !== undefined && b.billingPostalCode !== null && b.billingPostalCode !== "") {
+    const pais = typeof b.country === "string" && b.country ? b.country : (await findClinicDetail(req.params.id))?.country;
+    const problema = postalCodeError(b.billingPostalCode, pais);
+    if (problema) {
+      res.status(400).json({ error: problema });
+      return;
+    }
   }
   // El contacto por próxima cita sugerida: lo prende el super-admin porque va por
   // una plantilla que Meta tiene que aprobar en el WABA de la clínica.
@@ -444,6 +455,9 @@ platformRouter.put("/clinics/:id", requirePermission(PERMISSIONS.CLINICAS_EDITAR
   }
   // El identificador fiscal se guarda normalizado (mayúsculas, sin espacios de más): ver services/tax-id.ts.
   if (b.billingTaxId !== undefined) data.billingTaxId = normalizeTaxId(b.billingTaxId);
+  if (b.billingPostalCode !== undefined) {
+    data.billingPostalCode = normalizePostalCode(b.billingPostalCode);
+  }
   if (b.services !== undefined) data.services = b.services;
   if (b.active !== undefined) data.active = b.active;
   if (b.minLeadMinutes !== undefined) data.minLeadMinutes = b.minLeadMinutes;

@@ -35,6 +35,7 @@ interface ClinicDetail {
   billingLegalName: string | null;
   billingTaxId: string | null;
   billingAddress: string | null;
+  billingPostalCode: string | null;
   billingEmail: string | null;
   urgencyNotifyEmail: string | null;
   urgencyNotifyPhone: string | null;
@@ -174,6 +175,7 @@ export function ClinicDetailPage() {
     billingLegalName: "",
     billingTaxId: "",
     billingAddress: "",
+    billingPostalCode: "",
     billingEmail: "",
     urgencyNotifyEmail: "",
     urgencyNotifyPhone: "",
@@ -229,6 +231,7 @@ export function ClinicDetailPage() {
         billingLegalName: clinicData.billingLegalName ?? "",
         billingTaxId: clinicData.billingTaxId ?? "",
         billingAddress: clinicData.billingAddress ?? "",
+        billingPostalCode: clinicData.billingPostalCode ?? "",
         billingEmail: clinicData.billingEmail ?? "",
         urgencyNotifyEmail: clinicData.urgencyNotifyEmail ?? "",
         urgencyNotifyPhone: clinicData.urgencyNotifyPhone ?? "",
@@ -305,6 +308,7 @@ export function ClinicDetailPage() {
         billingLegalName: form.billingLegalName || null,
         billingTaxId: form.billingTaxId || null,
         billingAddress: form.billingAddress || null,
+        billingPostalCode: form.billingPostalCode || null,
         billingEmail: form.billingEmail || null,
         urgencyNotifyEmail: form.urgencyNotifyEmail || null,
         urgencyNotifyPhone: form.urgencyNotifyPhone || null,
@@ -727,6 +731,17 @@ export function ClinicDetailPage() {
               disabled={!canEdit}
               value={form.billingAddress}
               onChange={(e) => setForm((f) => ({ ...f, billingAddress: e.target.value }))}
+            />
+          </div>
+          <div className="field" style={{ flex: "0 0 160px" }}>
+            <Label htmlFor="detail-billing-postal-code">Código postal</Label>
+            <Input
+              id="detail-billing-postal-code"
+              disabled={!canEdit}
+              inputMode="numeric"
+              maxLength={12}
+              value={form.billingPostalCode}
+              onChange={(e) => setForm((f) => ({ ...f, billingPostalCode: e.target.value }))}
             />
           </div>
           <div className="field" style={{ flex: 1 }}>

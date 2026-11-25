@@ -2224,7 +2224,7 @@ Las pantallas:
   sociales (Facebook/Instagram/TikTok, solo el link de referencia — sin
   credenciales; son la base para cuando esos canales existan, hoy solo
   WhatsApp), facturación (razón social, CUIT/RFC, dirección, email — texto
-  libre, el formato del identificador fiscal varía por país; **al guardar se normaliza** a mayúsculas y sin espacios de más con `normalizeTaxId()`, porque el SAT trabaja el RFC en mayúsculas, y sin tocar guiones ni puntos de otros países; no se valida el formato). También
+  libre, el formato del identificador fiscal varía por país; **al guardar se normaliza** a mayúsculas y sin espacios de más con `normalizeTaxId()`, porque el SAT trabaja el RFC en mayúsculas, y sin tocar guiones ni puntos de otros países; no se valida el formato); el **código postal fiscal** va en su propia columna (`Clinic.billingPostalCode`, 2026-11-25) porque el CFDI 4.0 lo pide como dato aparte: en México exige 5 dígitos y en otros países solo forma de código postal (`services/postal-code.ts`; la dirección sigue siendo texto libre). También
   `address` y `googleBusinessUrl`. La **membresía** (plan + qué paga) está
   en el mismo detalle pero en su propia tarjeta, con su propio endpoint —
   ver "Cuánto paga cada clínica" más arriba; el `PUT` general rechaza esos

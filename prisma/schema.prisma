@@ -149,6 +149,8 @@ model Clinic {
   billingLegalName String?
   billingTaxId     String?
   billingAddress   String?
+  // Código postal del domicilio fiscal, aparte de la dirección: el CFDI 4.0 lo exige como dato propio.
+  billingPostalCode String?
   billingEmail     String?
 
   // Qué le cobra la plataforma a esta clínica. Es el **precio acordado**, no
