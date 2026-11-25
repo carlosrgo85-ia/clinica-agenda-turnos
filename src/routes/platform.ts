@@ -414,6 +414,10 @@ platformRouter.put("/clinics/:id", requirePermission(PERMISSIONS.CLINICAS_EDITAR
       return;
     }
   }
+  if (b.assistantDisclosedInProfile !== undefined && typeof b.assistantDisclosedInProfile !== "boolean") {
+    res.status(400).json({ error: "`assistantDisclosedInProfile` tiene que ser booleano." });
+    return;
+  }
   // El contacto por próxima cita sugerida: lo prende el super-admin porque va por
   // una plantilla que Meta tiene que aprobar en el WABA de la clínica.
   if (b.nextVisitOutreachEnabled !== undefined && typeof b.nextVisitOutreachEnabled !== "boolean") {
@@ -479,6 +483,7 @@ platformRouter.put("/clinics/:id", requirePermission(PERMISSIONS.CLINICAS_EDITAR
   if (b.serviceNoun !== undefined) data.serviceNoun = (b.serviceNoun as string).trim();
   if (b.nextVisitOutreachEnabled !== undefined) data.nextVisitOutreachEnabled = b.nextVisitOutreachEnabled;
   if (b.campaignFollowUpEnabled !== undefined) data.campaignFollowUpEnabled = b.campaignFollowUpEnabled;
+  if (b.assistantDisclosedInProfile !== undefined) data.assistantDisclosedInProfile = b.assistantDisclosedInProfile;
   if (b.nextVisitOutreachLeadDays !== undefined) data.nextVisitOutreachLeadDays = b.nextVisitOutreachLeadDays;
   if (b.country !== undefined) data.country = b.country;
 

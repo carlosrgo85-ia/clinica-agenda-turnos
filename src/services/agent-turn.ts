@@ -1134,6 +1134,9 @@ async function reclamarPresentacion(params: {
   deps: AgentTurnDeps;
 }): Promise<string | null> {
   const { clinic, patient, deps } = params;
+  // La clínica ya lo dice en el perfil de WhatsApp Business (lo comprobó el super-admin): no se repite en el chat. No se reclama
+  // la marca: si se apaga el interruptor, quien nunca la recibió la recibe en su próxima respuesta.
+  if (clinic.assistantDisclosedInProfile) return null;
   try {
     const mensaje = buildAssistantIntroMessage(clinic);
     const reclamo = await prisma.patient.updateMany({

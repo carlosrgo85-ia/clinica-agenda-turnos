@@ -118,6 +118,10 @@ model Clinic {
   /// Link al aviso de privacidad DE LA CLÍNICA (ella es la responsable de los datos de sus pacientes). El
   /// asistente lo manda UNA vez, en el primer mensaje que le contesta a cada persona. Ver `services/privacy-notice.ts`.
   privacyNoticeUrl  String?
+  // La clínica ya avisa que atiende un asistente virtual en la descripción de su perfil de WhatsApp Business: el asistente
+  // deja de presentarse en la primera respuesta. Lo prende el super-admin DESPUÉS de comprobar que el perfil lo dice; apagado,
+  // la presentación sale siempre (exigencia de la política de uso de Anthropic). Ver "Presentación del asistente" en CLAUDE.md.
+  assistantDisclosedInProfile Boolean @default(false)
 
   // Teléfono de contacto público (distinto de `adminPhone`, que es interno
   // para avisos de configuración), sitio web y dirección — contexto que

@@ -1067,6 +1067,17 @@ describe("presentación del asistente y aviso de privacidad", () => {
     expect(presentaciones).toHaveLength(1);
   });
 
+  it("con el perfil de WhatsApp ya avisando: no se presenta en el chat, y al apagarlo la recibe quien no la tenía", async () => {
+    const c = await fichaNueva(URL);
+    await prisma.clinic.update({ where: { id: c.clinic.id }, data: { assistantDisclosedInProfile: true } });
+    const conPerfil = { ...c, clinic: { ...c.clinic, assistantDisclosedInProfile: true } };
+    expect(await turno(conPerfil, "Hola", "Hola, ¿en qué le ayudo?")).toEqual(["Hola, ¿en qué le ayudo?"]);
+    // La marca no se reclamó: sigue pendiente.
+    expect((await prisma.patient.findUniqueOrThrow({ where: { id: c.patient.id } })).assistantIntroSentAt).toBeNull();
+    // Se apaga el interruptor: la próxima respuesta la lleva.
+    expect((await turno(c, "¿Hay lugar?"))[0]).toMatch(/^Le atiende el asistente virtual/);
+  });
+
   it("si falla el envío, la marca de la presentación se libera y la próxima respuesta la lleva", async () => {
     const c = await fichaNueva(URL);
     const { deps, llamadas } = fakeDeps();

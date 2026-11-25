@@ -1634,6 +1634,13 @@ depender de que el modelo lo mencione), cada uno **una sola vez por ficha titula
    (*"al menos al comienzo de cada sesión de chat o en la interfaz del producto"*) y prohíbe hacerse pasar por una persona; incumplirlo pone en
    riesgo la cuenta del modelo, que es la de TODAS las clínicas (se pidió no decirlo, el 2026-11-20, y se mantuvo por esto: se acortó y se quitó el
    tono legal). El prompt lo refuerza ("HONESTIDAD SOBRE QUIÉN ERES": nunca niega ser un asistente virtual ni usa nombre de persona).
+   **Excepción por clínica (2026-11-25): `Clinic.assistantDisclosedInProfile`.** El dueño del producto pidió explícitamente llevar el aviso a la descripción del
+   perfil de WhatsApp Business. Con el interruptor prendido (lo prende el super-admin, en el detalle de la clínica, **solo después de comprobar que la
+   descripción del perfil lo dice**) el asistente deja de presentarse en el chat; apagado (default) sigue saliendo siempre. **Que el perfil cuente como
+   "interfaz del producto" para la política de Anthropic NO está confirmado con ellos** (punto 8 de `docs/legal/solicitud-retencion-cero-anthropic.md`): es
+   una decisión tomada bajo ese riesgo, clínica por clínica, y se revierte apagando el interruptor. Lo demás sigue igual: el prompt prohíbe negar que es un
+   asistente virtual y no usa nombre de persona. `reclamarPresentacion()` no reclama la marca con el interruptor prendido, así que al apagarlo quien nunca la
+   recibió la recibe en su próxima respuesta.
    Cualquier cambio que haga al asistente parecer una persona (nombre propio, frases como "mi consultorio") choca con esto: revisarlo
    contra la política de uso y la regla transversal 3.
 2. **Aviso de privacidad, al final de la respuesta al SEGUNDO mensaje de la persona (no en el primero, para no abrumar; en el mismo mensaje que la respuesta, 2026-11-25):** *"Mientras tanto, le dejamos el aviso

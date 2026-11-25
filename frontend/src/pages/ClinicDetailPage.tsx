@@ -43,6 +43,7 @@ interface ClinicDetail {
   serviceNoun?: string;
   nextVisitOutreachEnabled: boolean;
   campaignFollowUpEnabled: boolean;
+  assistantDisclosedInProfile: boolean;
   nextVisitOutreachLeadDays: number;
   plan?: { name: string; features: string[] } | null;
   _count: { users: number; professionals: number; workingHours: number };
@@ -183,6 +184,7 @@ export function ClinicDetailPage() {
     serviceNoun: "servicio",
     nextVisitOutreachEnabled: false,
     campaignFollowUpEnabled: false,
+    assistantDisclosedInProfile: false,
     nextVisitOutreachLeadDays: "14",
   });
 
@@ -239,6 +241,7 @@ export function ClinicDetailPage() {
         serviceNoun: clinicData.serviceNoun ?? "servicio",
         nextVisitOutreachEnabled: clinicData.nextVisitOutreachEnabled ?? false,
         campaignFollowUpEnabled: clinicData.campaignFollowUpEnabled ?? false,
+        assistantDisclosedInProfile: clinicData.assistantDisclosedInProfile ?? false,
         nextVisitOutreachLeadDays: String(clinicData.nextVisitOutreachLeadDays ?? 14),
       });
       // El token nunca se prefilla: la API no lo devuelve, y en blanco
@@ -316,6 +319,7 @@ export function ClinicDetailPage() {
         serviceNoun: palabra,
         nextVisitOutreachEnabled: form.nextVisitOutreachEnabled,
         campaignFollowUpEnabled: form.campaignFollowUpEnabled,
+        assistantDisclosedInProfile: form.assistantDisclosedInProfile,
         nextVisitOutreachLeadDays: dias,
       });
       toast.success(
@@ -444,6 +448,28 @@ export function ClinicDetailPage() {
             value={form.privacyNoticeUrl}
             onChange={(e) => setForm((f) => ({ ...f, privacyNoticeUrl: e.target.value }))}
           />
+        </div>
+
+        <div className="field">
+          <div className="checkbox-field">
+            <Checkbox
+              id="detail-disclosed-in-profile"
+              disabled={!canEdit}
+              checked={form.assistantDisclosedInProfile}
+              onCheckedChange={(v) => setForm((f) => ({ ...f, assistantDisclosedInProfile: v === true }))}
+            />
+            <Label htmlFor="detail-disclosed-in-profile">
+              El perfil de WhatsApp Business ya dice que se atiende con un asistente virtual
+            </Label>
+          </div>
+          <p className="muted" style={{ fontSize: "0.9em", margin: "4px 0 8px" }}>
+            Apagado por defecto: el asistente se presenta ("Le atiende el asistente virtual de…") en la primera respuesta de cada
+            persona. Prende esto <strong>solo después de cargar y comprobar</strong> en WhatsApp Manager → Perfil que la descripción
+            lo dice (por ejemplo: "Atención por WhatsApp con un asistente virtual. Si prefiere hablar con una persona, indíquelo.").
+            Con esto prendido ya no se presenta en el chat. La política de uso del modelo de IA exige avisar que es una IA, al
+            comienzo del chat o en la interfaz del producto; que el perfil cuente como "interfaz" no está confirmado con el
+            proveedor del modelo: es una decisión tomada bajo ese riesgo, por clínica.
+          </p>
         </div>
 
         <div className="field">

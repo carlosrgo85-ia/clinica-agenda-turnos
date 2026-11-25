@@ -14,7 +14,7 @@ La Plataforma la contratan **clínicas y consultorios** ("la **Clínica**"). Hay
 | **Usuario del panel** (personal de la Clínica o de la Plataforma). | Somos **responsables** de los datos de su cuenta. |
 | **Representante de una Clínica** (contacto comercial, facturación). | Somos **responsables**. |
 
-En su primer mensaje, el asistente le informa que lo atiende un **asistente virtual** y, en el segundo, le comparte el enlace al **aviso de privacidad de la Clínica**, que es el que rige sobre sus datos como paciente.
+Le informamos que lo atiende un **asistente virtual**, en el primer mensaje del asistente o, cuando la Clínica así lo haya configurado, en la descripción de su perfil de WhatsApp Business. Además, en su segundo mensaje el asistente le comparte el enlace al **aviso de privacidad de la Clínica**, que es el que rige sobre sus datos como paciente.
 
 Si usted es paciente y quiere ejercer sus derechos sobre sus datos de salud o de su historial, **diríjase primero a su Clínica**; nosotros la ayudaremos a responder (ver sección 10).
 
