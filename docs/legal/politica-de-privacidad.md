@@ -136,5 +136,5 @@ Podemos actualizarla. Publicaremos la nueva versión con su fecha y, si el cambi
 
 ## 15. Contacto
 
-**Carlos Garcia Ortiz (persona física)** · Colonia Del Valle, Ciudad de México, México · avisos@pontic.com.mx
+**Carlos Garcia Ortiz (persona física)** · Rodríguez Saro 631, Colonia Del Valle, C.P. 03104, Ciudad de México, México · avisos@pontic.com.mx
 Persona designada para atender las solicitudes de datos personales: Carlos Garcia Ortiz · avisos@pontic.com.mx

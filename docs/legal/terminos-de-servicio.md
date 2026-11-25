@@ -93,7 +93,7 @@ Estos términos se rigen por las leyes de México. Las partes intentarán resolv
 
 ## 16. Contacto
 
-**Carlos Garcia Ortiz (persona física)** · Colonia Del Valle, Ciudad de México, México · avisos@pontic.com.mx · [RFC / IDENTIFICACIÓN FISCAL]
+**Carlos Garcia Ortiz (persona física)** · Rodríguez Saro 631, Colonia Del Valle, C.P. 03104, Ciudad de México, México · avisos@pontic.com.mx · [RFC / IDENTIFICACIÓN FISCAL]
 
 ---
 
