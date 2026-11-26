@@ -17,13 +17,13 @@ de los revisores; las instrucciones son para ti, en español.
 - [ ] La URI de redirección de producción registrada en el cliente OAuth: `https://app.pontic.com.mx/oauth/google/callback`.
 - [ ] El cliente OAuth cargado en la plataforma (Catálogos → Secretos → «Google Calendar (OAuth)») y probado: conectar una cuenta de punta a punta.
 
-### Decisión pendiente antes de enviar: ¿pedir permisos más estrechos?
-Hoy se piden `calendar.events` y `calendar.readonly`. Los revisores suelen preguntar *«¿por qué no un permiso más estrecho?»*, y hay un punto débil:
-**`calendar.readonly` da lectura de todo el calendario, pero solo se usa para listar los calendarios** (para que la clínica elija uno). Para eso existe
-`calendar.calendarlist.readonly`, que solo lista los calendarios. Cambiarlo es un cambio pequeño de código (la constante `GOOGLE_CALENDAR_SCOPES` en
-`src/services/google-auth.ts`), pero las cuentas ya conectadas tendrían que reconectarse. **Conviene decidirlo antes de enviar**, porque los textos de
-abajo tienen que coincidir con los permisos que realmente se piden. Hay una variante del texto para cada caso. (La clasificación de cada permiso —sensible o no—
-se ve en la propia pantalla de «Acceso a los datos» de Google Cloud; no la pude confirmar fuera de ahí.)
+### Decisión tomada (2026-11-26): se pide un permiso más estrecho
+Se pedían `calendar.events` y `calendar.readonly`. Los revisores suelen preguntar *«¿por qué no un permiso más estrecho?»*, y había un punto débil:
+**`calendar.readonly` da lectura de todo el calendario, pero solo se usaba para listar los calendarios** (para que la clínica elija uno). Se reemplazó por
+**`calendar.calendarlist.readonly`**, que solo lista los calendarios (`GOOGLE_CALENDAR_SCOPES` en `src/services/google-auth.ts`). Las cuentas ya conectadas con
+el permiso anterior siguen funcionando. **Antes de enviar, probar conectar una cuenta nueva de punta a punta** (el permiso nuevo también tiene que alcanzar para leer
+el calendario «primary» y saber de qué cuenta es). La clasificación de cada permiso —sensible o no— se ve en la pantalla «Acceso a los datos» de Google Cloud; no la pude
+confirmar fuera de ahí.
 
 ## 1. Datos para el formulario
 
@@ -67,14 +67,7 @@ by our app would not work because the clinic's calendar already exists and was c
 ```
 *(Si cambian a `calendar.events.owned`, ajustar la última frase: funcionaría solo con calendarios de los que la cuenta es propietaria; en un calendario compartido de Workspace donde la cuenta es editora, no.)*
 
-### `https://www.googleapis.com/auth/calendar.readonly`  *(si se mantiene)*
-```
-Pontic uses this permission only to list the calendars of the connected Google account (calendarList.list), so that the clinic can choose in a drop-down
-which calendar the appointments are shown on. We do not use it to read event content: event access is covered by calendar.events and is described
-above. Listing the calendars is done once, when the clinic connects or changes its calendar.
-```
-
-### `https://www.googleapis.com/auth/calendar.calendarlist.readonly`  *(variante, si se cambia el permiso anterior)*
+### `https://www.googleapis.com/auth/calendar.calendarlist.readonly`
 ```
 Pontic uses this permission only to list the calendars of the connected Google account, so that the clinic can choose in a drop-down which calendar the
 appointments are shown on. It is done once, when the clinic connects or changes its calendar. We do not read the content of other calendars with it.
@@ -107,7 +100,7 @@ Duración razonable: 3 a 5 minutos, sin cortes en la parte del consentimiento.
 *Haces:* en la pantalla de Google, **deja quieta la barra de direcciones unos segundos** (se ve el `client_id`), elige la cuenta, **muestra la lista de permisos** y pulsa Allow / Continue.
 *English:* "Google shows the consent screen for the app Pontic. These are the two permissions requested: see, create and delete events, and see the list of calendars. The user grants access."
 
-**Escena 4: elegir el calendario (20 s)** — uso de `calendar.readonly` / `calendarlist.readonly`
+**Escena 4: elegir el calendario (20 s)** — uso de `calendar.calendarlist.readonly`
 *Haces:* en Pontic, abre el selector y elige el calendario de prueba.
 *English:* "Pontic lists the account's calendars so the clinic can choose where appointments are shown. This is the only use of the calendar-list permission."
 

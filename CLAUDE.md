@@ -294,8 +294,10 @@ Sobre los tokens de OAuth:
 - El `state` del flujo va firmado con HMAC y vence a los 10 minutos. Sin
   eso, alguien podría hacer que una clínica conecte una cuenta ajena.
 - Los scopes son los mínimos: `calendar.events` (crear/borrar los eventos
-  espejo, leer los ajenos para los bloqueos) y `calendar.readonly` (listar
-  los calendarios). **No** se pide el scope `calendar` completo.
+  espejo, leer los ajenos para los bloqueos) y `calendar.calendarlist.readonly` (listar
+  los calendarios y leer el "primary" para saber de qué cuenta es; reemplazó a `calendar.readonly` el 2026-11-26 porque ese da lectura de todo el
+  calendario y solo se usaba para esto). **No** se pide el scope `calendar` completo. Las cuentas ya conectadas con el scope anterior siguen
+  funcionando; **tras este cambio hay que probar conectar una cuenta nueva de punta a punta** (la API que lee el "primary" tiene que aceptar el scope).
 - `access_type=offline` + `prompt=consent` en la URL de consentimiento:
   Google manda el refresh token una sola vez por autorización, y sin
   refresh token el acceso se cae en una hora y los cron jobs dejan de andar.
@@ -3245,7 +3247,7 @@ y **no bloquea la salida**. Ninguno está diseñado todavía; lo anotado son los
        token **vence a los 7 días**, así que cada clínica tendría que
        reconectar una vez por semana.
      - **Verificación de Google**: los scopes `calendar.events` y
-       `calendar.readonly` son sensibles, así que Google revisa la app. Se pide
+       `calendar.calendarlist.readonly` (antes `calendar.readonly`) pueden ser sensibles (se ve en «Acceso a los datos» de Google Cloud), así que Google revisa la app. Se pide
        desde el Centro de verificación. Hay que completar Branding (nombre,
        logo, dominio de la app), una política de privacidad y unos términos de
        servicio públicos, y un video de la demo que muestre el uso de los
@@ -3433,7 +3435,7 @@ y **no bloquea la salida**. Ninguno está diseñado todavía; lo anotado son los
 - No guardar un refresh token sin cifrar, ni meter
   `CALENDAR_TOKEN_ENCRYPTION_KEY` en la base o en el repo.
 - No pedir el scope `calendar` completo en el flujo de OAuth — con
-  `calendar.events` + `calendar.readonly` alcanza.
+  `calendar.events` + `calendar.calendarlist.readonly` alcanza.
 - No agregar una feature Plus ni una regla de rubro como código
   condicional sobre el nombre de una clínica — siempre un campo en
   `Clinic` (booleano, texto, o referencia).

@@ -16,15 +16,19 @@ import { buildOAuthState } from "./oauth-state";
  *
  * - `calendar.events` — crear y borrar los eventos espejo de los turnos, y
  *   leer los eventos ajenos para importarlos como bloqueos.
- * - `calendar.readonly` — listar los calendarios de la cuenta, para que la
- *   clínica elija cuál conectar.
+ * - `calendar.calendarlist.readonly` — listar los calendarios de la cuenta, para
+ *   que la clínica elija cuál conectar (y leer el calendario "primary" para saber
+ *   de qué cuenta es). Reemplaza a `calendar.readonly` (2026-11-26): ese da lectura
+ *   de TODO el calendario y solo se usaba para esto; el más estrecho lo pide Google
+ *   en la verificación. Las cuentas ya conectadas con `calendar.readonly` siguen
+ *   funcionando: lo que se concedió no se revoca por cambiar este arreglo.
  *
  * A propósito NO se pide el scope `calendar` completo, que además permite
  * crear y borrar calendarios enteros.
  */
 export const GOOGLE_CALENDAR_SCOPES = [
   "https://www.googleapis.com/auth/calendar.events",
-  "https://www.googleapis.com/auth/calendar.readonly",
+  "https://www.googleapis.com/auth/calendar.calendarlist.readonly",
 ];
 
 /** Se lanza cuando falta la app de OAuth de la plataforma. */
@@ -142,7 +146,7 @@ export async function exchangeCodeAndSaveAccount(params: {
   //
   // El email sale del calendario "primary", cuyo id ES el email de la cuenta, y
   // no de la API de userinfo: esa pide el scope `email`/`openid`, que no
-  // pedimos a propósito (solo los dos de Calendar). `calendar.readonly` alcanza.
+  // pedimos a propósito (solo los dos de Calendar). `calendar.calendarlist.readonly` alcanza.
   const calendar = google.calendar({ version: "v3", auth: client });
   const { data: primary } = await calendar.calendarList.get({ calendarId: "primary" });
   const email = primary.id;
