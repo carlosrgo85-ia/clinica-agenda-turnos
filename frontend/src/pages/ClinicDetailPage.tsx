@@ -109,6 +109,10 @@ interface TemplateStatus {
   descripcion: string;
   /** `APPROVED`, `PENDING`, `REJECTED`, o `NO_CREADA` si no está en el WABA. */
   status: string;
+  /** Categoría que Meta aplicó (`UTILITY`, `MARKETING`…); null si no está creada. */
+  categoriaEnMeta: string | null;
+  /** La que espera el catálogo y con la que se registra el costo. */
+  categoriaEsperada: string;
 }
 
 interface CountryOption {
@@ -954,6 +958,15 @@ export function ClinicDetailPage() {
                 {templates.map((t) => (
                   <li key={t.name} style={{ marginBottom: 6 }}>
                     <code>{t.name}</code> — <strong>{t.status}</strong>
+                    {t.categoriaEnMeta && (
+                      <>
+                        {" · "}
+                        {t.categoriaEnMeta === "MARKETING" ? "Marketing" : t.categoriaEnMeta === "UTILITY" ? "Utilidad" : t.categoriaEnMeta}
+                        {t.categoriaEnMeta !== t.categoriaEsperada && (
+                          <span className="error-text"> (el catálogo espera {t.categoriaEsperada === "MARKETING" ? "Marketing" : "Utilidad"}: el costo estimado no coincidirá)</span>
+                        )}
+                      </>
+                    )}
                     <div className="muted" style={{ fontSize: "0.85em" }}>{t.descripcion}</div>
                   </li>
                 ))}

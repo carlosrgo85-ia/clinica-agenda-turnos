@@ -2148,8 +2148,7 @@ se los da al "Super Admin") mide lo que gasta cada clínica y la plataforma en e
   - **WhatsApp**: `sendTemplateMessage()` / `sendTextMessage()` registran un `UsageEvent` **solo si el envío salió** (Meta no cobra el
     rechazado). El `clinicId` y el país viajan en `ClinicWhatsAppCreds`, que sale de `clinicWhatsAppCreds(clinic)`: **por eso ningún envío
     se hace sin dejar rastro y no hubo que tocar a cada llamador**. La clínica que se le pasa tiene que traer `id` y `country`.
-    Tarifas `whatsapp:<categoría>:<PAÍS>` o `whatsapp:<categoría>:*`. Todas las plantillas del catálogo se crean como Utilidad, así que se
-    registran como `utility`: **si Meta reclasifica una a Marketing, lo facturado difiere de lo registrado**. Meta cobra por mensaje de
+    Tarifas `whatsapp:<categoría>:<PAÍS>` o `whatsapp:<categoría>:*`. Cada plantilla del catálogo lleva su `categoria` (`CLINIC_TEMPLATES`) y el envío se registra con ella (`templateCostCategory()`): desde el 2026-11-26 `proximo_control`, `seguimiento_campana` y `aviso_configuracion` son `marketing` porque así las dejó Meta en la Clínica Demo, y el detalle de la clínica muestra la categoría real de Meta y avisa si no coincide con el catálogo. **Si Meta reclasifica otra, actualizar `categoria` ahí** o lo facturado difiere de lo registrado; cargar también las tarifas `whatsapp:marketing:<PAÍS>` Meta cobra por mensaje de
     plantilla según categoría y país; verificar la tarifa vigente de Meta antes de cargarla.
   - **Google Places** (`google-places.ts`) y **crear/borrar el evento espejo** de Calendar o Outlook (`calendar.ts`): un `UsageEvent` por llamada.
     Calendar y Graph son gratis (se cuenta el volumen); los de Calendar van con `clinicId` null (el despachador no conoce la clínica).

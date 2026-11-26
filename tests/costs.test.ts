@@ -157,6 +157,16 @@ describe("el registro de los envíos de WhatsApp", () => {
     expect(crudo).not.toContain("Reconocible");
   });
 
+  it("una plantilla de Marketing del catálogo se registra con su categoría real", async () => {
+    const c = await crearClinica("MX");
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, text: async () => "" })));
+    const creds = clinicWhatsAppCreds({ ...c, whatsappTokenEncrypted: c.whatsappTokenEncrypted });
+    await sendTemplateMessage(creds, "5215511112222", "proximo_control", "es", ["a", "b", "c"]);
+    vi.unstubAllGlobals();
+    const filas = await prisma.usageEvent.findMany({ where: { clinicId: c.id } });
+    expect(filas.map((f) => [f.templateName, f.category])).toEqual([["proximo_control", "marketing"]]);
+  });
+
   it("un envío que Meta rechazó no se registra", async () => {
     const c = await crearClinica();
     vi.stubGlobal("fetch", vi.fn(async () => ({ ok: false, status: 400, text: async () => "no" })));

@@ -556,6 +556,9 @@ platformRouter.get(
             name: t.name,
             descripcion: t.descripcion,
             status: encontrada?.status ?? "NO_CREADA",
+            // La categoría que Meta aplicó de verdad, y la que espera el catálogo (de ella sale el costo).
+            categoriaEnMeta: encontrada?.category ?? null,
+            categoriaEsperada: t.categoria,
           };
         })
       );

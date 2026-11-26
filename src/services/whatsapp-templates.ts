@@ -23,12 +23,18 @@ import { redactTokens } from "./whatsapp-token";
  * y si no coinciden el mensaje se rechaza en tiempo de envío.
  */
 
-/** Categoría de Meta. Ninguna de estas es marketing: todas son transaccionales. */
-const UTILITY = "UTILITY";
+/** Categorías de Meta que usa el catálogo. */
+export type TemplateCategory = "UTILITY" | "MARKETING";
 
 export interface TemplateDefinition {
   /** Nombre en Meta. Es el que se guarda en `Clinic.*TemplateName`. */
   name: string;
+  /**
+   * Categoría con la que se crea y con la que se registra el costo. Es la que Meta termina
+   * aplicando (2026-11-26, Clínica Demo): las que invitan a agendar o avisan de configuración
+   * quedaron en MARKETING aunque se crearan como Utilidad, y Marketing se factura distinto.
+   */
+  categoria: TemplateCategory;
   /** Qué manda el código con esta plantilla, para el log y la pantalla. */
   descripcion: string;
   /** El cuerpo, con `{{1}}`, `{{2}}`… en el orden en que se mandan. */
@@ -45,6 +51,7 @@ export interface TemplateDefinition {
 export const CLINIC_TEMPLATES: TemplateDefinition[] = [
   {
     name: "recordatorio_turno",
+    categoria: "UTILITY",
     descripcion: "Recordatorio de cita al paciente (24hs antes, y 2hs en el plan Plus)",
     // jobs/daily-reminders.ts → [nombre, fecha, hora, servicio]
     body:
@@ -54,6 +61,7 @@ export const CLINIC_TEMPLATES: TemplateDefinition[] = [
   },
   {
     name: "seguimiento_post_consulta",
+    categoria: "UTILITY",
     descripcion: "Seguimiento al día siguiente de la visita (plan Plus)",
     // jobs/post-visit-followup.ts → [nombre, nombre de la clínica]
     body:
@@ -63,6 +71,7 @@ export const CLINIC_TEMPLATES: TemplateDefinition[] = [
   },
   {
     name: "cita_asignada_profesional",
+    categoria: "UTILITY",
     descripcion: "Aviso al profesional cuando se le asigna una cita nueva",
     // services/professional-notifications.ts → [nombre del profesional,
     // fecha, hora, servicio, nombre del paciente]
@@ -77,6 +86,7 @@ export const CLINIC_TEMPLATES: TemplateDefinition[] = [
   },
   {
     name: "cita_modificada",
+    categoria: "UTILITY",
     descripcion: "Aviso al paciente cuando la clínica cambia el día, la hora o el profesional de su cita",
     // services/patient-notifications.ts → [nombre del paciente, servicio,
     // fecha, hora, nombre del profesional]
@@ -87,6 +97,7 @@ export const CLINIC_TEMPLATES: TemplateDefinition[] = [
   },
   {
     name: "cita_cancelada",
+    categoria: "UTILITY",
     descripcion: "Aviso al paciente cuando la clínica cancela su cita",
     // services/patient-notifications.ts → [nombre del paciente, servicio,
     // fecha, hora, nombre de la clínica]
@@ -97,6 +108,7 @@ export const CLINIC_TEMPLATES: TemplateDefinition[] = [
   },
   {
     name: "proximo_control",
+    categoria: "MARKETING",
     descripcion: "Aviso al paciente de que se acerca su próxima cita sugerida (apagado por defecto en cada clínica)",
     // jobs/next-visit-outreach.ts → [nombre del paciente, nombre de la clínica,
     // de qué es la próxima cita ("control", "limpieza")]
@@ -112,6 +124,7 @@ export const CLINIC_TEMPLATES: TemplateDefinition[] = [
   },
   {
     name: "seguimiento_campana",
+    categoria: "MARKETING",
     descripcion: "Seguimiento a quien llegó por una campaña, preguntó y no agendó (apagado por defecto en cada clínica)",
     // jobs/campaign-followup.ts → [nombre del paciente, nombre de la clínica, nombre de la campaña]
     // Es lo más cercano a una promoción de todo el catálogo: Meta puede reclasificarla como MARKETING. Por
@@ -124,6 +137,7 @@ export const CLINIC_TEMPLATES: TemplateDefinition[] = [
   },
   {
     name: "aviso_configuracion",
+    categoria: "MARKETING",
     descripcion: "Aviso al número interno de la clínica cuando falta configuración",
     // jobs/config-alerts.ts → [nombre de la clínica, qué falta, link]
     // Con 3 variables y una frase corta Meta la rechazaba (2388293), y no puede
@@ -200,7 +214,7 @@ async function createTemplate(
       },
       body: JSON.stringify({
         name: template.name,
-        category: UTILITY,
+        category: template.categoria,
         language: languageCode,
         components: [
           {
@@ -302,4 +316,10 @@ export function renderTemplateBody(name: string, params: string[]): string | nul
   const plantilla = CLINIC_TEMPLATES.find((t) => t.name === name);
   if (!plantilla) return null;
   return plantilla.body.replace(/\{\{(\d+)\}\}/g, (_, n: string) => params[Number(n) - 1] ?? "");
+}
+
+/** Categoría de facturación (clave de tarifa) con la que se registra el envío de una plantilla del catálogo. */
+export function templateCostCategory(name: string | undefined): "utility" | "marketing" {
+  const plantilla = CLINIC_TEMPLATES.find((t) => t.name === name);
+  return plantilla?.categoria === "MARKETING" ? "marketing" : "utility";
 }

@@ -4,6 +4,7 @@ import { env } from "../config/env";
 import { COST_CATALOG, PROVIDER_LABELS, UNMETERED_NOTES } from "../config/cost-catalog";
 import { clinicDateKey, dateKeyToUtcMidnight } from "./time";
 import { SANDBOX_PHONE_PREFIX } from "./sandbox-phone";
+import { templateCostCategory } from "./whatsapp-templates";
 
 /**
  * Consumo y costo de la plataforma: cuánto gasta cada clínica en el modelo de IA, en WhatsApp y en las
@@ -132,8 +133,8 @@ function phoneVariants(to: string): string[] {
 }
 
 /**
- * Un envío de WhatsApp que salió bien. Todas las plantillas del catálogo se crean como Utilidad
- * (`whatsapp-templates.ts`); si Meta reclasifica una a Marketing, lo facturado difiere de lo registrado.
+ * Un envío de WhatsApp que salió bien. La categoría sale del catálogo (`CLINIC_TEMPLATES[].categoria`,
+ * la que Meta aplicó); si Meta reclasifica otra, hay que actualizarla ahí o lo facturado difiere de lo registrado.
  */
 export async function recordWhatsAppSend(params: {
   clinicId: string;
@@ -153,7 +154,7 @@ export async function recordWhatsAppSend(params: {
       patientId: paciente?.id ?? null,
       provider: "whatsapp",
       kind: params.kind,
-      category: params.kind === "plantilla" ? "utility" : "service",
+      category: params.kind === "plantilla" ? templateCostCategory(params.templateName) : "service",
       templateName: params.templateName ?? null,
       country: params.country,
     });
