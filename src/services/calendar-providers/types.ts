@@ -1,4 +1,5 @@
 import type { GoogleAccount, MicrosoftAccount } from "@prisma/client";
+import type { EventHints } from "../block-attribution";
 
 /**
  * Contrato que cumple cada sistema de agenda al que la plataforma puede
@@ -66,6 +67,11 @@ export interface CalendarBlockInput {
   startTime: Date;
   endTime: Date;
   isAllDay: boolean;
+  /**
+   * Pistas para saber de qué profesional es el evento en un calendario COMPARTIDO (título, color,
+   * invitados). **Solo en memoria durante el sync: nunca se guardan** (ver `block-attribution.ts`).
+   */
+  hints?: EventHints;
 }
 
 /**

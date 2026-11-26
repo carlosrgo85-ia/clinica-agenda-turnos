@@ -647,6 +647,11 @@ model Professional {
   // agenda personal afecte lo que ofrece el bot.
   blockSyncEnabled Boolean @default(true)
 
+  // Color con el que esta persona marca sus citas en un calendario COMPARTIDO (el `colorId` de
+  // Google, "1" a "11"). Es una de las tres pistas para saber de quién es un evento ajeno
+  // (`services/block-attribution.ts`); null = no se usa el color. Solo Google.
+  calendarColorId String?
+
   /// Los servicios que realiza. Sin ninguno, el profesional "no hace nada":
   /// no se ofrece ni se le asigna. Por eso no se lo deja dar de alta ni
   /// activar sin al menos uno.

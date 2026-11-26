@@ -36,6 +36,7 @@ export interface ProfessionalInput {
   whatsappPhone?: string | null;
   notifyByEmail?: boolean;
   notifyByWhatsapp?: boolean;
+  calendarColorId?: string | null;
 }
 
 export function createProfessional(

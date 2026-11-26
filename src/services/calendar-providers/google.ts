@@ -220,7 +220,18 @@ async function listBlocks(
       const parsed = parseEventWindow(event);
       if (!parsed) continue;
 
-      blocks.push({ externalEventId: event.id, ...parsed });
+      blocks.push({
+        externalEventId: event.id,
+        ...parsed,
+        // Solo para atribuir el bloqueo a un profesional en un calendario compartido; no se guarda.
+        hints: {
+          title: event.summary ?? null,
+          colorId: event.colorId ?? null,
+          attendeeEmails: (event.attendees ?? [])
+            .filter((a) => a.email && !a.resource)
+            .map((a) => a.email as string),
+        },
+      });
     }
 
     pageToken = data.nextPageToken ?? undefined;

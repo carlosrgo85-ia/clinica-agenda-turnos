@@ -497,7 +497,8 @@ inicial*, 09:00, con un profesional).
 | CL-04 | Un evento ajeno en el calendario | En ≤15 min se copia como bloqueo (solo horario, sin título); los eventos "Libre", cancelados o rechazados se ignoran. | Manual |
 | CL-05 | Conectar o enlazar un calendario | El sync de esa clínica corre al instante. | Manual |
 | CL-06 | La clínica revoca el acceso | La cuenta queda con `revokedAt`, llega mail y WhatsApp, y `config-health` marca el aviso bloqueante. | Auto (`calendar-access-alerts.test.ts`) |
-| CL-07 | Calendario compartido de la clínica | Un evento ajeno bloquea a todos los profesionales que lo usan. | Parcial (`calendar-link.test.ts`) |
+| CL-07 | Calendario compartido de la clínica | Un evento ajeno sin pistas bloquea a todos los profesionales que lo usan. | Auto (`calendar-sync.test.ts`) |
+| CL-08 | Calendario compartido: el evento nombra al doctor en el título, tiene su color o lo invita | El bloqueo es solo de ese doctor (si dos pistas apuntan a dos, de los dos); el título, color e invitados no se guardan. | Auto (`block-attribution.test.ts`, `calendar-sync.test.ts`); **Manual** contra Google real |
 | CL-08 | Cuenta de Microsoft (Outlook) | Mismo comportamiento; refresh token rotativo sin perderlo. | Auto con `fetch` simulado (`microsoft-provider.test.ts`); **falta probar contra Microsoft real** |
 | CL-09 | La agenda de la clínica dibuja los bloqueos | **Pendiente** (punto 3 de la deuda técnica): hoy no se ven. | Manual |
 

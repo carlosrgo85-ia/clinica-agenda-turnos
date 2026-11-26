@@ -34,7 +34,7 @@ Si usted es paciente y quiere ejercer sus derechos sobre sus datos de salud o de
 - Datos de facturación de la Clínica (razón social, identificación fiscal, dirección, correo).
 
 **De los calendarios que la Clínica conecta** (Google Calendar, Microsoft Outlook)
-- Solo el **rango horario** de los eventos que la Clínica no creó mediante la Plataforma, para no ofrecer horarios ocupados. **No guardamos el título, la descripción ni los asistentes** de esos eventos.
+- Solo el **rango horario** de los eventos que la Clínica no creó mediante la Plataforma, para no ofrecer horarios ocupados. **No guardamos el título, la descripción ni los asistentes** de esos eventos. Si la Clínica lleva a todo su equipo en un mismo calendario, la Plataforma **lee** en ese momento el título, el color y los correos de los invitados del evento únicamente para identificar de cuál profesional es el horario ocupado; esos datos **no se guardan**.
 - Los tokens de acceso al calendario, que guardamos cifrados.
 
 **Datos técnicos**
@@ -82,7 +82,7 @@ Cuando una Clínica nos autoriza a conectar su WhatsApp, su calendario o su cuen
 
 ## 6. Datos de usuario de Google (declaración de uso limitado)
 
-Si la Clínica conecta su Google Calendar, pedimos solo los permisos mínimos: **`calendar.events`** (crear y borrar los eventos que reflejan las citas, y leer los demás eventos solo para conocer su horario) y **`calendar.calendarlist.readonly`** (listar los calendarios para elegir uno). No pedimos acceso completo a la cuenta de Google.
+Si la Clínica conecta su Google Calendar, pedimos solo los permisos mínimos: **`calendar.events`** (crear y borrar los eventos que reflejan las citas, y leer los demás eventos solo para conocer su horario y, en un calendario compartido, de cuál profesional es) y **`calendar.calendarlist.readonly`** (listar los calendarios para elegir uno). No pedimos acceso completo a la cuenta de Google.
 
 - Usamos esa información **únicamente** para mostrar las citas en el calendario y evitar ofrecer horarios ocupados. No la usamos para publicidad, no la vendemos y no la transferimos a terceros salvo lo necesario para prestar el servicio, cumplir la ley o con su consentimiento.
 - Ninguna persona lee los eventos de su calendario, salvo que sea necesario para seguridad, soporte con su autorización o cumplimiento legal.

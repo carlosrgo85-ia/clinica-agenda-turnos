@@ -267,6 +267,84 @@ describe("syncClinicBlocks: a quién se le aplica", () => {
     for (const p of clinic.professionals) expect(await bloquesDe(p.id)).toHaveLength(1);
   });
 
+  describe("calendario compartido: de quién es cada evento", () => {
+    const conPistas = (id: string, hints: Record<string, unknown>) => ({ ...evento(id, 2), hints });
+
+    async function clinicaCompartida() {
+      const clinic = await crearClinica({
+        sharedCalendarId: "equipo@cal",
+        profesionales: [{ name: "Liliana Munguía" }, { name: "Claussent Luna González" }, { name: "Cynthya Trujillo" }],
+      });
+      // La clínica los devuelve ordenados por nombre: se buscan por nombre, no por posición.
+      const por = (nombre: string) => clinic.professionals.find((p) => p.name.startsWith(nombre))!;
+      const [lili, claus, cynthya] = [por("Liliana"), por("Claussent"), por("Cynthya")];
+      await prisma.professional.update({ where: { id: lili.id }, data: { calendarColorId: "7" } });
+      await prisma.professional.update({ where: { id: claus.id }, data: { contactEmail: "claus@clinica.com" } });
+      return { clinic, lili, claus, cynthya };
+    }
+
+    it("el nombre en el título lo deja solo en esa persona, y no se guarda el título", async () => {
+      const { clinic, lili, claus, cynthya } = await clinicaCompartida();
+      listCalendarBlocks.mockResolvedValue([conPistas("ev-1", { title: "Dra. Munguía — Juan Pérez, limpieza" })]);
+      await syncClinicBlocks(clinic.id);
+
+      expect(await bloquesDe(lili.id)).toHaveLength(1);
+      expect(await bloquesDe(claus.id)).toHaveLength(0);
+      expect(await bloquesDe(cynthya.id)).toHaveLength(0);
+      const [guardado] = await bloquesDe(lili.id);
+      expect(guardado.title).toBeNull();
+      expect(JSON.stringify(guardado)).not.toContain("Juan");
+    });
+
+    it("el color y el invitado también atribuyen, y las pistas se suman", async () => {
+      const { clinic, lili, claus, cynthya } = await clinicaCompartida();
+      listCalendarBlocks.mockResolvedValue([
+        conPistas("por-color", { colorId: "7" }),
+        conPistas("por-invitado", { attendeeEmails: ["Claus@Clinica.com"] }),
+        conPistas("las-dos", { colorId: "7", attendeeEmails: ["claus@clinica.com"] }),
+      ]);
+      await syncClinicBlocks(clinic.id);
+
+      expect((await bloquesDe(lili.id)).map((b) => b.googleEventId).sort()).toEqual(["las-dos", "por-color"]);
+      expect((await bloquesDe(claus.id)).map((b) => b.googleEventId).sort()).toEqual(["las-dos", "por-invitado"]);
+      expect(await bloquesDe(cynthya.id)).toHaveLength(0);
+    });
+
+    it("sin ninguna pista que coincida, el evento ocupa a todo el equipo (como siempre)", async () => {
+      const { clinic, lili, claus, cynthya } = await clinicaCompartida();
+      listCalendarBlocks.mockResolvedValue([
+        conPistas("sin-pistas", { title: "Reunión de equipo", colorId: "3", attendeeEmails: ["otro@x.com"] }),
+        evento("sin-hints", 5),
+      ]);
+      await syncClinicBlocks(clinic.id);
+      for (const p of [lili, claus, cynthya]) expect(await bloquesDe(p.id)).toHaveLength(2);
+    });
+
+    it("el evento de alguien que apagó la importación de bloqueos no le cae a nadie más", async () => {
+      const { clinic, lili, claus, cynthya } = await clinicaCompartida();
+      await prisma.professional.update({ where: { id: lili.id }, data: { blockSyncEnabled: false } });
+      listCalendarBlocks.mockResolvedValue([conPistas("ev-1", { title: "Munguía — paciente" })]);
+      await syncClinicBlocks(clinic.id);
+      for (const p of [lili, claus, cynthya]) expect(await bloquesDe(p.id)).toHaveLength(0);
+    });
+
+    it("en el calendario PERSONAL de uno, un evento que nombra a otra persona le ocupa igual", async () => {
+      const clinic = await crearClinica({
+        profesionales: [
+          { name: "Gómez", googleCalendarId: "gomez@cal" },
+          { name: "Luna", googleCalendarId: "luna@cal" },
+        ],
+      });
+      listCalendarBlocks.mockImplementation(async (target: { calendarId: string }) =>
+        target.calendarId === "gomez@cal" ? [conPistas("ev-1", { title: "Reunión con la Dra. Luna" })] : []
+      );
+      await syncClinicBlocks(clinic.id);
+      const [gomez, luna] = clinic.professionals;
+      expect(await bloquesDe(gomez.id)).toHaveLength(1);
+      expect(await bloquesDe(luna.id)).toHaveLength(0);
+    });
+  });
+
   it("dos profesionales con el mismo calendario enlazado lo leen una sola vez", async () => {
     const clinic = await crearClinica({
       profesionales: [{ name: "A", googleCalendarId: "mismo@cal" }, { name: "B", googleCalendarId: "mismo@cal" }],

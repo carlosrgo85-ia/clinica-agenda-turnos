@@ -107,6 +107,8 @@ interface GraphEvent {
   start?: { dateTime?: string };
   end?: { dateTime?: string };
   responseStatus?: { response?: string };
+  subject?: string;
+  attendees?: Array<{ emailAddress?: { address?: string } }>;
   singleValueExtendedProperties?: Array<{ id?: string; value?: string }>;
 }
 
@@ -136,7 +138,7 @@ async function listBlocks(
     `startDateTime=${encodeURIComponent(from.toISOString())}`,
     `endDateTime=${encodeURIComponent(to.toISOString())}`,
     "$top=100",
-    `$select=${encodeURIComponent("id,start,end,isAllDay,isCancelled,showAs,responseStatus")}`,
+    `$select=${encodeURIComponent("id,start,end,isAllDay,isCancelled,showAs,responseStatus,subject,attendees")}`,
     `$expand=${encodeURIComponent(`singleValueExtendedProperties($filter=id eq '${APPOINTMENT_ID_PROPERTY}')`)}`,
   ].join("&");
 
@@ -159,6 +161,14 @@ async function listBlocks(
         startTime: parseUtc(event.start.dateTime),
         endTime: parseUtc(event.end.dateTime),
         isAllDay: Boolean(event.isAllDay),
+        // Solo para atribuir el bloqueo en un calendario compartido; no se guarda. Outlook no tiene
+        // un color por evento equivalente (usa categorías), así que acá no hay pista de color.
+        hints: {
+          title: event.subject ?? null,
+          attendeeEmails: (event.attendees ?? [])
+            .map((a) => a.emailAddress?.address)
+            .filter((a): a is string => Boolean(a)),
+        },
       });
     }
 

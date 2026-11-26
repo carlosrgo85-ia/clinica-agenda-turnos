@@ -9,6 +9,7 @@ import {
   resolveCalendarTargetForProfessional,
 } from "../services/calendar";
 import { listActiveClinics } from "../repositories/clinics.repository";
+import { attributeBlockToProfessionals } from "../services/block-attribution";
 
 /**
  * Cuántos días hacia adelante se importan bloqueos. Alcanza con cubrir la
@@ -81,11 +82,12 @@ export async function syncAllClinics(): Promise<void> {
  * Sincroniza los bloqueos de todos los profesionales de una clínica.
  *
  * Si la clínica usa un calendario compartido, ese calendario se lee una
- * sola vez y el bloqueo se aplica a TODOS los profesionales que lo usan:
- * en una agenda compartida no hay forma de saber a quién pertenece un
- * evento ajeno, así que se asume que ocupa a todo el equipo. Es el criterio
+ * sola vez. Un evento ajeno se atribuye al profesional que indiquen sus
+ * pistas (nombre en el título, color o invitado: `block-attribution.ts`);
+ * si ninguna coincide, ocupa a TODOS los que lo usan, el criterio
  * conservador — puede rechazar algún horario que en realidad estaba libre,
- * pero nunca agenda encima de algo ocupado.
+ * pero nunca agenda encima de algo ocupado. Las pistas se leen en memoria y
+ * se descartan: solo se guarda el rango horario de cada bloqueo.
  */
 export async function syncClinicBlocks(clinicId: string): Promise<void> {
   const clinic = await prisma.clinic.findUnique({
@@ -99,6 +101,13 @@ export async function syncClinicBlocks(clinicId: string): Promise<void> {
     },
   });
   if (!clinic) return;
+
+  // Para reconocer de quién es un evento se compara contra TODO el equipo activo, no solo contra
+  // quienes importan bloqueos: un evento de alguien que apagó la importación no debe caerle a otro.
+  const equipo = await prisma.professional.findMany({
+    where: { clinicId, active: true },
+    select: { id: true, name: true, contactEmail: true, calendarColorId: true },
+  });
 
   const from = new Date();
   const to = new Date();
@@ -152,8 +161,22 @@ export async function syncClinicBlocks(clinicId: string): Promise<void> {
       continue;
     }
 
+    // La atribución solo tiene sentido si el calendario lo usan varios: en el calendario personal
+    // de UNA persona, un evento que nombra a otro ("reunión con la Dra. Luna") le ocupa igual a ella.
+    const compartido =
+      professionalIds.length > 1 ||
+      (clinic.sharedCalendarId !== null && clinic.sharedCalendarId === target.calendarId);
+
     for (const professionalId of professionalIds) {
-      await replaceBlocksForProfessional(clinicId, professionalId, blocks, from, to);
+      const propios = compartido
+        ? blocks.filter((block) => {
+            const atribuido = attributeBlockToProfessionals(block.hints, equipo);
+            // Sin pistas que coincidan: de todos. Con pistas: solo de los que nombran (puede ser nadie
+            // del grupo, si el evento es de alguien que no importa bloqueos).
+            return atribuido.length === 0 || atribuido.includes(professionalId);
+          })
+        : blocks;
+      await replaceBlocksForProfessional(clinicId, professionalId, propios, from, to);
     }
   }
 }

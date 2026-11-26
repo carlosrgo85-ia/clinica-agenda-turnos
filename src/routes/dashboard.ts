@@ -138,6 +138,7 @@ import { normalizarNombre } from "../repositories/patients.repository";
 import { getSandboxConversation, resetSandbox, runSandboxTurn, SandboxError } from "../services/sandbox";
 import { PERMISSIONS } from "../config/permissions";
 import { PLAN_FEATURES, planIncludes } from "../config/plan-features";
+import { isValidEventColorId } from "../services/block-attribution";
 import { authenticate } from "../middleware/authenticate";
 import { requirePermission } from "../middleware/authorize";
 
@@ -2195,6 +2196,7 @@ dashboardRouter.get(
         whatsappPhone: p.whatsappPhone,
         notifyByEmail: p.notifyByEmail,
         notifyByWhatsapp: p.notifyByWhatsapp,
+        calendarColorId: p.calendarColorId,
         servicios: p.services.map((x) => ({ id: x.id, name: x.name, active: x.active })),
         turnosFuturos: turnos.professionals.get(p.id) ?? 0,
       })),
@@ -2265,12 +2267,16 @@ function contactoDelBody(b: Record<string, unknown>) {
     whatsappPhone?: string | null;
     notifyByEmail?: boolean;
     notifyByWhatsapp?: boolean;
+    calendarColorId?: string | null;
   } = {};
 
   if (b.contactEmail !== undefined) data.contactEmail = textoOpcional(b.contactEmail) ?? null;
   if (b.whatsappPhone !== undefined) data.whatsappPhone = textoOpcional(b.whatsappPhone) ?? null;
   if (typeof b.notifyByEmail === "boolean") data.notifyByEmail = b.notifyByEmail;
   if (typeof b.notifyByWhatsapp === "boolean") data.notifyByWhatsapp = b.notifyByWhatsapp;
+  // Color en el calendario compartido: solo los 11 de Google; null/"" lo quita. Un valor raro se ignora.
+  if (b.calendarColorId === null || b.calendarColorId === "") data.calendarColorId = null;
+  else if (isValidEventColorId(b.calendarColorId)) data.calendarColorId = b.calendarColorId;
 
   return data;
 }

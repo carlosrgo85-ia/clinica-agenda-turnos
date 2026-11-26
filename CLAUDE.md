@@ -365,10 +365,33 @@ espejar o borrar un evento, hay que incluir la relación (`googleAccount` /
 `sharedCalendarAccount`). Sin eso, `resolveCalendarTargetForProfessional()`
 se cae en silencio a la cuenta de servicio.
 
-En un calendario compartido, un evento ajeno se aplica como bloqueo a
-**todos** los profesionales que lo usan: no hay forma de saber de quién es.
-Es el criterio conservador — puede rechazar algún horario que en realidad
-estaba libre, pero nunca agenda encima de algo ocupado.
+En un calendario compartido, un evento ajeno se atribuye al profesional que
+indiquen sus **pistas** y, si ninguna coincide, se aplica como bloqueo a **todos**
+los que lo usan (2026-11-26; antes era siempre a todos). Es el criterio
+conservador — puede rechazar algún horario que en realidad estaba libre, pero
+nunca agenda encima de algo ocupado. Hace falta porque hay clínicas que llevan
+todas las citas de todos los doctores en un solo calendario (dos doctores pueden
+atender a la misma hora): sin pistas, la cita de uno bloquea a todos.
+
+- **Las tres pistas** (`services/block-attribution.ts`, las usa `jobs/calendar-sync.ts`):
+  el **nombre en el título** (sin acentos ni tratamiento; solo cuentan las palabras de
+  nombre que identifican a UNA persona del equipo: "López" con dos López no atribuye
+  nada), el **color** del evento (`Professional.calendarColorId`, los 11 `colorId` de
+  Google; solo Google) y el **invitado** (su `contactEmail` entre los asistentes).
+- **Se suman** (unión): título de A y color de B = bloqueo de A y B. **Ninguna coincide =
+  todos**. Si el evento es de alguien con `blockSyncEnabled` apagado, no le cae a nadie.
+- **Solo en calendarios compartidos** (`Clinic.sharedCalendarId` o varios profesionales con
+  el mismo calendario): en el calendario personal de UNA persona, un evento que nombra a
+  otra ("reunión con la Dra. Luna") le ocupa igual a ella.
+- **Las pistas viven solo en memoria** (`CalendarBlockInput.hints`): se leen, se resuelven y se
+  descartan. Lo que se guarda sigue siendo el rango horario de cada bloqueo, **sin título, color
+  ni invitados**. Pero **la política de privacidad y la justificación de permisos de Google dicen
+  ahora que se leen** (regla transversal 3).
+- **Riesgo conocido**: un paciente cuyo apellido coincide con el de un profesional ("Luna") atribuye
+  ese evento solo a ese profesional. Se acepta (el evento queda en la agenda de alguien) y se
+  documenta; la pista del título es la más débil y el color y el invitado son más fiables.
+- Se configura en Recursos → profesional ("Calendario compartido"). Outlook solo aporta título e
+  invitados (no tiene color por evento).
 
 ## Qué es genérico y qué se configura por rubro
 

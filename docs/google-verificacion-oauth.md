@@ -59,7 +59,9 @@ creates one event on the clinic's selected calendar (events.insert). If the appo
 connects or links a calendar) Pontic reads the events of the selected calendar for the next 60 days (events.list) to learn which time ranges are already
 busy, so the assistant does not offer those times to patients. We ignore events marked "Free", cancelled events and events the user declined.
 
-From events that we did not create we store ONLY the start and end time. We do not store the title, description, location or attendees. Calendar
+From events that we did not create we store ONLY the start and end time. We do not store the title, description, location or attendees. When a clinic
+keeps its whole team in one shared calendar, we read each event's title, color and attendee e-mail addresses in memory, only to work out which professional the
+busy time belongs to (otherwise one doctor's appointment would block every doctor); those fields are discarded right after and never stored. Calendar
 availability is decided in our own database; Google is never queried while a patient is booking.
 
 This permission cannot be replaced by a narrower one: calendar.freebusy would not let us create or delete events, and a scope limited to calendars created
@@ -110,7 +112,7 @@ Duración razonable: 3 a 5 minutos, sin cortes en la parte del consentimiento.
 
 **Escena 6: evitar horarios ocupados (60 s)** — uso de `calendar.events` (list)
 *Haces:* muestra el evento «Personal» que creaste de antemano en Google Calendar. Para que se importe al instante, en Calendarios vuelve a enlazar el calendario (eso dispara la sincronización inmediata). En la **Agenda**, muestra que esa franja aparece como **bloqueada y sin título**. Luego, en el **Chat de pruebas**, pídele al asistente una cita para mañana y muestra que **no ofrece** las 10:00.
-*English:* "Pontic reads the busy time ranges of the calendar so the assistant does not offer taken slots. Only the start and end time are stored, never the title, description or attendees. Here, the personal event appears as a blocked time without a title, and the assistant does not offer that time to patients."
+*English:* "Pontic reads the busy time ranges of the calendar so the assistant does not offer taken slots. Only the start and end time are stored, never the title, description or attendees (in a shared calendar the title, color and attendees are read in memory only to tell which professional the time belongs to). Here, the personal event appears as a blocked time without a title, and the assistant does not offer that time to patients."
 
 **Escena 7: desconectar (30 s)**
 *Haces:* en Calendarios, desconecta la cuenta. Abre `https://myaccount.google.com/permissions` y muestra que el usuario también puede revocar el acceso desde su cuenta de Google.

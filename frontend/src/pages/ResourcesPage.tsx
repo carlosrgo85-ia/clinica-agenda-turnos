@@ -19,6 +19,22 @@ import { ErrorState } from "../components/ui/error-state";
 import { PageSkeleton } from "../components/ui/skeleton";
 import { CheckList } from "../components/CheckList";
 
+/** Los 11 colores de evento de Google Calendar: id (`colorId`), nombre y el tono aproximado. */
+const COLORES_GOOGLE = [
+  { id: "1", label: "Lavanda", hex: "#7986cb" },
+  { id: "2", label: "Salvia", hex: "#33b679" },
+  { id: "3", label: "Uva", hex: "#8e24aa" },
+  { id: "4", label: "Flamenco", hex: "#e67c73" },
+  { id: "5", label: "Banana", hex: "#f6bf26" },
+  { id: "6", label: "Mandarina", hex: "#f4511e" },
+  { id: "7", label: "Pavo real", hex: "#039be5" },
+  { id: "8", label: "Grafito", hex: "#616161" },
+  { id: "9", label: "Arándano", hex: "#3f51b5" },
+  { id: "10", label: "Albahaca", hex: "#0b8043" },
+  { id: "11", label: "Tomate", hex: "#d50000" },
+];
+const SIN_COLOR = "__sin_color__";
+
 interface Titulo {
   id: string;
   name: string;
@@ -37,6 +53,8 @@ interface Profesional {
   whatsappPhone: string | null;
   notifyByEmail: boolean;
   notifyByWhatsapp: boolean;
+  /** Color con el que marca sus citas en un calendario compartido (colorId de Google). */
+  calendarColorId: string | null;
   /** Los servicios que realiza. Vacío = no hace nada: no se le agenda. */
   servicios: Array<{ id: string; name: string; active: boolean }>;
   turnosFuturos: number;
@@ -646,6 +664,7 @@ function EditarProfesional(props: {
     whatsappPhone: props.profesional.whatsappPhone ?? "",
     notifyByEmail: props.profesional.notifyByEmail,
     notifyByWhatsapp: props.profesional.notifyByWhatsapp,
+    calendarColorId: props.profesional.calendarColorId ?? SIN_COLOR,
   });
 
   function submit(e: FormEvent) {
@@ -664,6 +683,7 @@ function EditarProfesional(props: {
       whatsappPhone: form.whatsappPhone.trim(),
       notifyByEmail: form.notifyByEmail,
       notifyByWhatsapp: form.notifyByWhatsapp,
+      calendarColorId: form.calendarColorId === SIN_COLOR ? null : form.calendarColorId,
     });
   }
 
@@ -752,6 +772,48 @@ function EditarProfesional(props: {
               {errorServicios && <p className="error-text">{errorServicios}</p>}
             </div>
           )}
+
+          <h4>Calendario compartido</h4>
+          <div className="field">
+            <Label htmlFor="edit-color">Color de sus citas en el calendario</Label>
+            <Select
+              value={form.calendarColorId}
+              onValueChange={(v) => v && setForm((f) => ({ ...f, calendarColorId: v }))}
+            >
+              <SelectTrigger id="edit-color">
+                <SelectValue>
+                  {form.calendarColorId === SIN_COLOR
+                    ? "No usar el color"
+                    : COLORES_GOOGLE.find((c) => c.id === form.calendarColorId)?.label}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={SIN_COLOR}>No usar el color</SelectItem>
+                {COLORES_GOOGLE.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    <span
+                      aria-hidden
+                      style={{
+                        display: "inline-block",
+                        width: 10,
+                        height: 10,
+                        borderRadius: "50%",
+                        background: c.hex,
+                        marginRight: 8,
+                      }}
+                    />
+                    {c.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="muted" style={{ fontSize: "0.85em", marginTop: 4 }}>
+              Solo para clínicas que llevan a todos sus profesionales en un mismo calendario de Google. Un evento
+              de ese calendario que Pontic no creó se atribuye a este profesional si (a) su nombre aparece en el
+              título, (b) tiene este color o (c) su correo de arriba está entre los invitados. Si ninguna pista
+              coincide, el evento bloquea a todo el equipo. De esos eventos solo se guarda el horario.
+            </p>
+          </div>
 
           <h4>Avisos de citas nuevas</h4>
           <p className="muted" style={{ marginTop: -8, fontSize: "0.85em" }}>
