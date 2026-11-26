@@ -48,24 +48,15 @@ already taken. Pontic does not use Google user data for advertising, does not se
 ## 2. Justificación de cada permiso (Scopes justification)
 
 ### `https://www.googleapis.com/auth/calendar.events`
+*(El formulario de Google limita cada justificación a **1.000 caracteres**: esta versión mide 914. No la alargues.)*
 ```
-Pontic needs to create and delete events and to read events on the calendar the clinic chooses. It is used for two things only:
+Pontic shows clinic appointments on the calendar the clinic chooses, and avoids double booking.
 
-1) Showing appointments on the professional's calendar. When a patient books through our WhatsApp assistant (or staff books in our web panel), Pontic
-creates one event on the clinic's selected calendar (events.insert). If the appointment is rescheduled or cancelled, Pontic deletes that event
-(events.delete). The events we create carry a private extended property with our appointment id, so we never touch events we did not create.
+1) Create/delete: when a patient books (WhatsApp assistant or staff panel), we create one event (events.insert); if it is rescheduled or cancelled we delete it (events.delete). Our events carry a private property with our appointment id, so we never touch events we did not create.
 
-2) Avoiding double booking. Professionals often keep personal and work commitments on the same calendar. Every 15 minutes (and right after the clinic
-connects or links a calendar) Pontic reads the events of the selected calendar for the next 60 days (events.list) to learn which time ranges are already
-busy, so the assistant does not offer those times to patients. We ignore events marked "Free", cancelled events and events the user declined.
+2) Read: every 15 min we read the next 60 days (events.list) to learn which time ranges are busy, so patients are not offered them. We ignore "Free", cancelled and declined events. For events we did not create we store ONLY start and end time. In a shared team calendar, title, color and attendee emails are read in memory only to tell which professional the time belongs to, then discarded, never stored.
 
-From events that we did not create we store ONLY the start and end time. We do not store the title, description, location or attendees. When a clinic
-keeps its whole team in one shared calendar, we read each event's title, color and attendee e-mail addresses in memory, only to work out which professional the
-busy time belongs to (otherwise one doctor's appointment would block every doctor); those fields are discarded right after and never stored. Calendar
-availability is decided in our own database; Google is never queried while a patient is booking.
-
-This permission cannot be replaced by a narrower one: calendar.freebusy would not let us create or delete events, and a scope limited to calendars created
-by our app would not work because the clinic's calendar already exists and was created by the clinic.
+A narrower scope cannot work: freebusy cannot create or delete events, and the calendar already exists (created by the clinic).
 ```
 *(Si cambian a `calendar.events.owned`, ajustar la última frase: funcionaría solo con calendarios de los que la cuenta es propietaria; en un calendario compartido de Workspace donde la cuenta es editora, no.)*
 
