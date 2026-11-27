@@ -2193,7 +2193,7 @@ se los da al "Super Admin") mide lo que gasta cada clínica y la plataforma en e
 - **Escribir tarifas queda auditado** (`platform.cost_rate_set`, etc.). Leer no es dato sensible (no hay teléfonos ni nombres).
 
 **Lo que no cubre (pendiente):** costos fijos manuales (servidor, base de datos, dominio, correo) para el costo operativo total; topes de
-mensajes por plan con cobro de excedente (el conteo de mensajes por clínica y por día ya está, falta el límite en `Plan`); conciliar con la
+mensajes por plan con cobro de excedente (**prioridad alta tras el piloto**, ver «Funcionalidades futuras») (el conteo de mensajes por clínica y por día ya está, falta el límite en `Plan`); conciliar con la
 facturación real de Meta (hoy es una estimación con la tarifa que se cargó); atribuir a una clínica el espejo de Calendar; y que la pantalla
 no tiene tests (las reglas sí: `tests/costs.test.ts`).
 
@@ -3026,6 +3026,20 @@ esperándola. Si falla, el turno ya está creado y es válido — se devuelve
 
 Decidido: primero se pasa el agente de WhatsApp a producción con una clínica interesada; lo siguiente se agrega después
 y **no bloquea la salida**. Ninguno está diseñado todavía; lo anotado son los puntos a resolver al empezar.
+
+- **PRIORIDAD ALTA, apenas se esté en producción: el proveedor paga los mensajes de WhatsApp y los recupera con la membresía; hacen falta topes y cobro de
+  excedentes (decidido el 2026-11-26, sin diseñar).** Carlos pondrá **su método de pago en el WABA de cada clínica** (Meta le cobra a él) y se lo cobra a la clínica dentro
+  de la membresía, porque es más fácil para la clínica. Consecuencia: **el riesgo del consumo es nuestro**. Una clínica que manda muchos mensajes (sobre todo Marketing:
+  ~US$ 0,04 en México contra ~0,0085 de Utilidad, a verificar en Meta) le cuesta más de lo que paga, y hoy **no hay ningún tope ni cobro de excedente**. Es lo que bloquea
+  sumar clínicas nuevas, por eso va primero entre lo posterior al piloto. Puntos a resolver: (1) **topes por plan en `Plan`** (mensajes incluidos al mes, por categoría: los
+  de Marketing pesan distinto; el conteo por clínica y por mes ya existe en Costos, falta el límite) y qué pasa al llegar: avisar a la clínica y al super-admin, frenar solo los
+  mensajes que **inicia la clínica** (nunca las respuestas a pacientes que escriben primero, que son el servicio) o cobrar el excedente; (2) **cobro del excedente**: precio
+  por mensaje extra (con margen sobre la tarifa de Meta), cómo se factura (la membresía es mensual en MXN, con IVA incluido) y que depende de la pasarela de cobro, que aún
+  no existe (`payments.ts` es un stub); (3) **alerta anticipada** al acercarse al tope (80 %), con la misma lógica de avisos que ya existe (mail, una vez por día);
+  (4) **conciliar con la factura real de Meta** (hoy Costos es una estimación con la tarifa cargada) y el cupo gratis de mensajes de servicio (`whatsapp:cupo_servicio_mensual`),
+  que no está confirmado; (5) las plantillas que el sistema manda solo (recordatorios, avisos a profesionales) cuentan igual, y un tope mal puesto puede frenar recordatorios:
+  decidir qué se protege; (6) **los términos de servicio publicados dicen lo contrario** (ver `docs/legal/pendientes-antes-de-publicar.md`, 3 quater): hay que cambiarlos antes de
+  incorporar una clínica bajo este modelo. Mientras no estén los topes, **sumar clínicas de a una y vigilar Costos** cada semana.
 
 - **Instagram como canal.** Un plan de suscripción (o una feature de plan en `PLAN_FEATURES`, no un booleano en `Clinic`) que
   permita conectar la cuenta de Instagram de la clínica. Hoy todo asume WhatsApp: el teléfono identifica la conversación,
