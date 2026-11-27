@@ -7,7 +7,7 @@
  * cada proveedor: un precio escrito acá se desactualiza sin que nadie se entere.
  */
 
-export type RateUnit = "usd_por_millon_tokens" | "usd_por_mensaje" | "usd_por_llamada";
+export type RateUnit = "usd_por_millon_tokens" | "usd_por_mensaje" | "usd_por_llamada" | "mensajes_por_mes";
 
 export interface CostCatalogEntry {
   /** Clave estable: `<provider>:<kind>`. Es la que une el evento con su fila del inventario. */
@@ -59,7 +59,7 @@ export const COST_CATALOG: CostCatalogEntry[] = [
     provider: "whatsapp",
     providerLabel: PROVIDER_LABELS.whatsapp,
     label: "Mensaje de texto libre (respuesta dentro de la ventana de 24 h)",
-    billing: "Mensaje de servicio. Meta hoy no lo cobra; si cambia, se carga la tarifa 'whatsapp:service:*'.",
+    billing: "Mensaje de servicio. Sin cupo cargado cuesta 0 (o la tarifa 'whatsapp:service:*' si existe). Con un cupo mensual cargado ('whatsapp:cupo_servicio_mensual:<PAÍS>' o ':*') los primeros del mes son gratis y el exceso vale 'whatsapp:service:<PAÍS>' (sin esa tarifa, queda 'sin tarifa').",
     unit: "usd_por_mensaje",
     free: true,
     recordedIn: "services/whatsapp.ts → sendTextMessage()",

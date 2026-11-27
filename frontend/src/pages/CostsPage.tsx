@@ -41,6 +41,7 @@ interface Summary {
   porClinica: Array<Totals & { clinicId: string; clinica: string; pais: string | null; moneda: string | null; cambio: Fx | null }>;
   porProveedor: Array<{ provider: string; etiqueta: string; eventos: number; costoUsd: number; sinTarifa: number }>;
   sinTarifa: { modelos: string[]; mensajes: number; llamadas: number };
+  servicioMes: { mes: string; filas: Array<{ clinicId: string; clinica: string; pais: string | null; enviados: number; cupo: number | null; gratis: number | null; cobrados: number | null }> };
 }
 interface ConversationRow extends Totals {
   dia: string;
@@ -73,6 +74,7 @@ const UNIDADES: Record<string, string> = {
   usd_por_millon_tokens: "USD por millón de tokens",
   usd_por_mensaje: "USD por mensaje",
   usd_por_llamada: "USD por llamada",
+  mensajes_por_mes: "Mensajes gratis por mes (el número va en Precio)",
 };
 
 /** Los costos son chicos (centavos o menos por mensaje): hasta 4 decimales para que no se vea todo "$0.00". */
@@ -217,6 +219,39 @@ export function CostsPage() {
               verdad pero no es de ningún paciente, así que no suma arriba.
             </p>
           )}
+
+          <h3 style={{ margin: "20px 0 8px" }}>Mensajes de servicio del mes ({resumen.servicioMes.mes})</h3>
+          <p className="muted" style={{ fontSize: "0.9em" }}>
+            Son las respuestas del asistente dentro de la ventana de 24 h. Cuenta el mes calendario en curso (UTC), sin importar el rango de arriba.
+            El cupo gratis se carga en Tarifas con el ítem <code>whatsapp:cupo_servicio_mensual:MX</code> (o <code>:*</code>) y la unidad «Mensajes gratis por mes».
+          </p>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Clínica</TableHead>
+                <TableHead>Enviados</TableHead>
+                <TableHead>Cupo</TableHead>
+                <TableHead>Dentro del cupo</TableHead>
+                <TableHead>Fuera del cupo</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {resumen.servicioMes.filas.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} className="muted">Sin mensajes de servicio este mes.</TableCell>
+                </TableRow>
+              )}
+              {resumen.servicioMes.filas.map((f) => (
+                <TableRow key={f.clinicId}>
+                  <TableCell>{f.clinica}</TableCell>
+                  <TableCell>{entero(f.enviados)}</TableCell>
+                  <TableCell>{f.cupo === null ? <span className="muted">sin cupo cargado</span> : entero(f.cupo)}</TableCell>
+                  <TableCell>{f.gratis === null ? <span className="muted">—</span> : entero(f.gratis)}</TableCell>
+                  <TableCell>{f.cobrados === null ? <span className="muted">—</span> : entero(f.cobrados)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
 
           {!clinicId && (
             <>

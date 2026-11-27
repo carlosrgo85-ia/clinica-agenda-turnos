@@ -14,6 +14,7 @@ import {
   rateAt,
   recordUsageEvent,
   recordWhatsAppSend,
+  buildServiceQuota,
   validateRateInput,
   whatsappCostUsd,
 } from "../src/services/costs";
@@ -165,6 +166,31 @@ describe("el registro de los envíos de WhatsApp", () => {
     vi.unstubAllGlobals();
     const filas = await prisma.usageEvent.findMany({ where: { clinicId: c.id } });
     expect(filas.map((f) => [f.templateName, f.category])).toEqual([["proximo_control", "marketing"]]);
+  });
+
+  it("el cupo mensual de servicio: dentro es gratis, el exceso usa la tarifa o queda sin tarifa", async () => {
+    const c = await crearClinica("MX");
+    const otra = await crearClinica("MX");
+    await tarifa("whatsapp:cupo_servicio_mensual:MX", 2, "2020-01-01", "mensajes_por_mes");
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, text: async () => "" })));
+    const creds = clinicWhatsAppCreds({ ...c, whatsappTokenEncrypted: c.whatsappTokenEncrypted });
+    for (let i = 0; i < 3; i++) await sendTextMessage(creds, "5215511112222", "x");
+    // sin tarifa de servicio, el que pasa del cupo queda sin tarifa
+    let filas = await prisma.usageEvent.findMany({ where: { clinicId: c.id }, orderBy: { occurredAt: "asc" } });
+    expect(filas.map((f) => (f.costUsd === null ? null : Number(f.costUsd)))).toEqual([0, 0, null]);
+    await tarifa("whatsapp:service:MX", 0.0085);
+    await sendTextMessage(creds, "5215511112222", "x");
+    filas = await prisma.usageEvent.findMany({ where: { clinicId: c.id }, orderBy: { occurredAt: "asc" } });
+    expect(Number(filas[3].costUsd)).toBe(0.0085);
+    // otra clínica tiene su propio cupo
+    const credsOtra = clinicWhatsAppCreds({ ...otra, whatsappTokenEncrypted: otra.whatsappTokenEncrypted });
+    await sendTextMessage(credsOtra, "5215511113333", "x");
+    vi.unstubAllGlobals();
+    const f2 = await prisma.usageEvent.findMany({ where: { clinicId: otra.id } });
+    expect(Number(f2[0].costUsd)).toBe(0);
+
+    const m = await buildServiceQuota(c.id);
+    expect(m.filas).toEqual([expect.objectContaining({ enviados: 4, cupo: 2, gratis: 2, cobrados: 2 })]);
   });
 
   it("un envío que Meta rechazó no se registra", async () => {

@@ -75,6 +75,39 @@ export function whatsappCostUsd(
   return category === "service" ? 0 : null;
 }
 
+/**
+ * El cupo mensual de mensajes de servicio gratis de una clínica (`whatsapp:cupo_servicio_mensual:<PAÍS>` o `:*`; el número
+ * va en `priceUsd`, unidad `mensajes_por_mes`). Null = no hay cupo cargado: rige el comportamiento de siempre.
+ * Es un dato y no una constante porque Meta lo cambia (las fuentes todavía se contradicen sobre si el exceso se cobra).
+ */
+export function serviceQuota(rates: Map<string, RateRow[]>, country: string | null, at: Date): number | null {
+  const porPais = country ? rateAt(rates, `whatsapp:cupo_servicio_mensual:${country.toUpperCase()}`, at) : null;
+  return porPais ?? rateAt(rates, "whatsapp:cupo_servicio_mensual:*", at);
+}
+
+/**
+ * Costo de un mensaje de servicio dado cuántos ya se mandaron ese mes. Sin cupo cargado: como siempre (la tarifa
+ * `service` o 0). Con cupo: dentro es 0; pasado el cupo vale la tarifa `service`, y **sin esa tarifa es null** ("sin
+ * tarifa"): haber cargado un cupo dice que el cobro del exceso importa, y un 0 ahí sería un cero silencioso.
+ */
+export function serviceMessageCostUsd(
+  rates: Map<string, RateRow[]>,
+  country: string | null,
+  at: Date,
+  previosEnElMes: number
+): number | null {
+  const cupo = serviceQuota(rates, country, at);
+  if (cupo === null) return whatsappCostUsd(rates, "service", country, at);
+  if (previosEnElMes < cupo) return 0;
+  const porPais = country ? rateAt(rates, `whatsapp:service:${country.toUpperCase()}`, at) : null;
+  return porPais ?? rateAt(rates, "whatsapp:service:*", at);
+}
+
+/** Inicio (UTC) del mes de `at`: Meta cuenta el cupo por mes calendario. */
+export function monthStartUtc(at: Date): Date {
+  return new Date(Date.UTC(at.getUTCFullYear(), at.getUTCMonth(), 1));
+}
+
 /** Cuánto vale una llamada a una integración: la tarifa cargada, 0 si es gratis por definición, o null. */
 export function integrationCostUsd(rates: Map<string, RateRow[]>, key: string, at: Date): number | null {
   const entrada = COST_CATALOG.find((e) => e.key === key);
@@ -94,6 +127,8 @@ export interface UsageInput {
   templateName?: string | null;
   country?: string | null;
   quantity?: number;
+  /** Mensajes de servicio que la clínica ya mandó este mes (para aplicar el cupo gratis). Solo `category: "service"`. */
+  serviciosPrevios?: number;
   /** Para los tests. */
   at?: Date;
 }
@@ -106,7 +141,9 @@ export async function recordUsageEvent(e: UsageInput): Promise<void> {
     const unidades = e.quantity ?? 1;
     const costo =
       e.provider === "whatsapp"
-        ? whatsappCostUsd(rates, e.category ?? "utility", e.country ?? null, at)
+        ? e.category === "service"
+          ? serviceMessageCostUsd(rates, e.country ?? null, at, e.serviciosPrevios ?? 0)
+          : whatsappCostUsd(rates, e.category ?? "utility", e.country ?? null, at)
         : integrationCostUsd(rates, `${e.provider}:${e.kind}`, at);
     await prisma.usageEvent.create({
       data: {
@@ -149,9 +186,16 @@ export async function recordWhatsAppSend(params: {
       orderBy: { createdAt: "asc" },
       select: { id: true },
     });
+    const serviciosPrevios =
+      params.kind === "texto"
+        ? await prisma.usageEvent.count({
+            where: { clinicId: params.clinicId, provider: "whatsapp", kind: "texto", occurredAt: { gte: monthStartUtc(new Date()) } },
+          })
+        : 0;
     await recordUsageEvent({
       clinicId: params.clinicId,
       patientId: paciente?.id ?? null,
+      serviciosPrevios,
       provider: "whatsapp",
       kind: params.kind,
       category: params.kind === "plantilla" ? templateCostCategory(params.templateName) : "service",
@@ -298,6 +342,51 @@ export interface CostSummary {
   porProveedor: Array<{ provider: string; etiqueta: string; eventos: number; costoUsd: number; sinTarifa: number }>;
   /** Lo que está sin tarifa, para avisarlo arriba de todo. */
   sinTarifa: { modelos: string[]; mensajes: number; llamadas: number };
+  /** Mensajes de servicio del MES EN CURSO (no del rango) de cada clínica contra su cupo gratis. */
+  servicioMes: { mes: string; filas: ServiceQuotaRow[] };
+}
+
+export interface ServiceQuotaRow {
+  clinicId: string;
+  clinica: string;
+  pais: string | null;
+  enviados: number;
+  /** Null = no hay cupo cargado (ver `serviceQuota()`). */
+  cupo: number | null;
+  gratis: number | null;
+  cobrados: number | null;
+}
+
+/** Mensajes de servicio del mes en curso por clínica, y cuántos entran en el cupo gratis y cuántos no. */
+export async function buildServiceQuota(clinicId?: string, now = new Date()): Promise<{ mes: string; filas: ServiceQuotaRow[] }> {
+  const [grupos, clinics, rates] = await Promise.all([
+    prisma.usageEvent.groupBy({
+      by: ["clinicId"],
+      where: { provider: "whatsapp", kind: "texto", occurredAt: { gte: monthStartUtc(now) }, clinicId: clinicId ?? { not: null } },
+      _sum: { quantity: true },
+    }),
+    prisma.clinic.findMany({ select: { id: true, name: true, country: true } }),
+    loadRates(),
+  ]);
+  const filas = grupos
+    .map((g) => {
+      const c = clinics.find((x) => x.id === g.clinicId);
+      if (!c) return null;
+      const enviados = g._sum.quantity ?? 0;
+      const cupo = serviceQuota(rates, c.country, now);
+      return {
+        clinicId: c.id,
+        clinica: c.name,
+        pais: c.country,
+        enviados,
+        cupo,
+        gratis: cupo === null ? null : Math.min(enviados, cupo),
+        cobrados: cupo === null ? null : Math.max(0, enviados - cupo),
+      };
+    })
+    .filter((f): f is ServiceQuotaRow => f !== null)
+    .sort((a, b) => b.enviados - a.enviados);
+  return { mes: now.toISOString().slice(0, 7), filas };
 }
 
 /** El resumen de un rango, global o de UNA clínica. Las pruebas del chat van aparte y no suman al total. */
@@ -388,6 +477,7 @@ export async function buildCostSummary(range: CostRange, clinicId?: string): Pro
       .map(([provider, v]) => ({ provider, etiqueta: PROVIDER_LABELS[provider] ?? provider, eventos: v.eventos, costoUsd: redondear(v.costoUsd), sinTarifa: v.sinTarifa }))
       .sort((a, b) => b.costoUsd - a.costoUsd),
     sinTarifa: { modelos: [...modelosSinTarifa].sort(), mensajes: total.mensajesSinTarifa, llamadas: total.llamadasSinTarifa },
+    servicioMes: await buildServiceQuota(clinicId),
   };
 }
 
@@ -499,7 +589,7 @@ export async function buildInventory(range: CostRange): Promise<{ filas: Invento
 
 // --- Tarifas y tipos de cambio (se editan en la pantalla) ---
 
-export const RATE_UNITS = ["usd_por_millon_tokens", "usd_por_mensaje", "usd_por_llamada"] as const;
+export const RATE_UNITS = ["usd_por_millon_tokens", "usd_por_mensaje", "usd_por_llamada", "mensajes_por_mes"] as const;
 
 export function validateRateInput(b: Record<string, unknown>):
   | { ok: true; value: { provider: string; item: string; unit: (typeof RATE_UNITS)[number]; priceUsd: number; effectiveFrom: Date; note: string | null } }

@@ -2164,6 +2164,7 @@ se los da al "Super Admin") mide lo que gasta cada clínica y la plataforma en e
   cargarlas también en cada ambiente nuevo** (Costos → Tarifas) y **volver a cargarlas si Anthropic cambia el precio o si se cambia el modelo** (`services/claude.ts`):
   la clave lleva el nombre del modelo, y un modelo nuevo vuelve a quedar "sin tarifa". Nadie vigila los precios solos: hay que revisarlos de vez en cuando.
   Las de WhatsApp (por categoría y país, ej. `whatsapp:utility:MX`) siguen sin cargar.
+- **Cupo mensual de mensajes de servicio** (2026-11-26): `buildServiceQuota()` cuenta por clínica los textos libres del mes calendario (UTC) y los separa en dentro y fuera del cupo; sale en el Resumen de Costos. El cupo es un dato (tarifa `whatsapp:cupo_servicio_mensual:<PAÍS>` o `:*`, unidad `mensajes_por_mes`, el número va en el precio), no una constante: las fuentes se contradicen sobre si Meta cobra el exceso desde el 1-oct-2026. Sin cupo cargado todo sigue como antes (servicio = 0). Con cupo, el costo se congela al enviar: dentro 0, exceso = `whatsapp:service:<PAÍS>` o **null (sin tarifa)** si falta. **Verificar la regla en la página de precios de Meta antes de cargarlo.**
 - **Solo metadatos**: ni teléfono, ni nombre, ni texto. La "conversación" es el titular (`patientId`) por día, mostrado con los últimos 6
   caracteres de la ficha. Las llamadas del **Chat de pruebas** cuestan de verdad y se muestran **aparte** (no suman al total).
   `recordUsageEvent()` y `recordWhatsAppSend()` **nunca lanzan**: se llaman después de hacer lo que miden.
