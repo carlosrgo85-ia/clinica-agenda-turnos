@@ -3218,8 +3218,11 @@ y **no bloquea la salida**. Ninguno está diseñado todavía; lo anotado son los
 - **El límite de espera del modelo era de 20 s y cortaba llamadas que iban bien (2026-11-27).** En producción el paciente elegía un horario («11 am»), recibía «Un momento, estoy
   revisando su mensaje» y dos minutos después la disculpa de falla. Causa (a confirmar en Monitoreo → Solicitudes al asistente: error «Request timed out»): `timeout: 20_000` por
   intento más los 2 reintentos del SDK; una llamada normal tarda 10 a 35 s (p50 10 s, p90 35 s en desarrollo, ~92 tokens/s con ~1.400 tokens de salida). Ahora `MODEL_TIMEOUT_MS = 60_000` y **sin** reintento del SDK (`services/claude.ts`; el peor caso hasta la disculpa es ~2 min 15 s, y el paciente recibe el «un momento» al minuto). **El «Todo en orden» de Monitoreo** ahora también cuenta las llamadas al modelo que fallaron o no se interpretaron en 24 h (antes solo miraba worker, cola y derivaciones sin avisar).
-  **Pendiente relacionado:** la salida promedio es de ~1.400 tokens y el comentario del código dice «~200»: acortar el JSON de respuesta bajaría la latencia y casi la mitad del costo
-  por mensaje (la salida cuesta US$ 10 por millón); revisarlo con datos de producción.
+  **Causa real de la salida de ~1.400 tokens (hallada el mismo día en producción):** Sonnet 5 corre con **pensamiento adaptativo** si no se le dice nada y el pensamiento gasta tokens de
+  salida; una llamada se quedó sin texto (`stop_reason: max_tokens`, bloques `["thinking"]`: «Claude no devolvió texto en la respuesta»). Ahora la llamada manda `thinking: { type: "disabled" }`
+  (aceptado en `claude-sonnet-5`; se verificó contra la API real que no devuelve 400). Debe bajar la latencia y el costo por mensaje (la salida cuesta US$ 10 por millón). **Hay que medirlo**:
+  tokens de salida y latencia en «Solicitudes al asistente», y mirar que el asistente siga decidiendo bien; si la calidad baja, probar `output_config: { effort: "low" }` con el pensamiento
+  prendido. Los tests no prueban la calidad del modelo. **Si se cambia a `claude-sonnet-5-5`, `disabled` devuelve 400** (ahí se usa `{ type: "between_tools" }`).
 - ~~Si falla la llamada a Claude, el paciente no recibe nada~~ **Resuelto
   (2026-11-13)**: `runAgentTurn()` reintenta UNA vez la primera interpretación
   tras `MODEL_RETRY_DELAY_MS` (15 s; avisa antes con `AVISO_DE_ESPERA` para que el

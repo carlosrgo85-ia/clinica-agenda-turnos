@@ -296,6 +296,13 @@ ${params.patientMessage}
         // recibe nada. Un mensaje normal usa ~200 tokens; enumerar horarios
         // disponibles usa bastante más, así que conviene el margen.
         max_tokens: 2048,
+        // **Sin razonamiento** (2026-11-27). Sonnet 5 corre con pensamiento adaptativo si no se le dice nada, y el pensamiento
+        // gasta tokens de salida: en producción una llamada se quedó sin texto (`stop_reason: max_tokens`, bloques: ["thinking"]) y
+        // el paciente recibió la disculpa por falla; además explica que la salida promediara ~1.400 tokens y que tardara 10 a
+        // 35 s, cuando la respuesta (un JSON corto) necesita unos 200. Aquí no hace falta pensar: se decide un horario entre
+        // los que ya se le dieron. Si la calidad de una decisión baja, se prueba `output_config: { effort: "low" }` con el
+        // pensamiento prendido antes de volver al comportamiento anterior.
+        thinking: { type: "disabled" },
         // `cache_control` cachea el system prompt (~1.900 tokens, idéntico
         // entre las dos llamadas de un mismo mensaje y entre todos los
         // mensajes de la misma clínica). Sin esto se repaga texto idéntico
