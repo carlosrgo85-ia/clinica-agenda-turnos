@@ -108,6 +108,11 @@ export function MonitoringPage() {
       `${data.cola.abandonados} mensaje(s) de pacientes llevan demasiado esperando respuesta.`,
     data.derivacionesSinAvisar.cantidad > 0 &&
       `${data.derivacionesSinAvisar.cantidad} derivación(es) sin avisar a la clínica.`,
+    // Antes «Todo en orden» ignoraba al asistente: una llamada al modelo que fallaba no ponía la pantalla en alerta.
+    data.agente24h.errores > 0 &&
+      `${data.agente24h.errores} llamada(s) al modelo de IA fallaron en las últimas 24 horas (ver «Solicitudes al asistente» y los eventos).`,
+    data.agente24h.sinInterpretar > 0 &&
+      `${data.agente24h.sinInterpretar} respuesta(s) del modelo no se pudieron interpretar en las últimas 24 horas.`,
   ].filter(Boolean) as string[];
 
   return (

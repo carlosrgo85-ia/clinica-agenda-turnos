@@ -3217,7 +3217,7 @@ y **no bloquea la salida**. Ninguno está diseñado todavía; lo anotado son los
   fecha mal tipeada se rechaza en vez de cerrar otro día.
 - **El límite de espera del modelo era de 20 s y cortaba llamadas que iban bien (2026-11-27).** En producción el paciente elegía un horario («11 am»), recibía «Un momento, estoy
   revisando su mensaje» y dos minutos después la disculpa de falla. Causa (a confirmar en Monitoreo → Solicitudes al asistente: error «Request timed out»): `timeout: 20_000` por
-  intento más los 2 reintentos del SDK; una llamada normal tarda 10 a 35 s (p50 10 s, p90 35 s en desarrollo, ~92 tokens/s con ~1.400 tokens de salida). Ahora `MODEL_TIMEOUT_MS = 45_000` con un solo reintento del SDK (`services/claude.ts`).
+  intento más los 2 reintentos del SDK; una llamada normal tarda 10 a 35 s (p50 10 s, p90 35 s en desarrollo, ~92 tokens/s con ~1.400 tokens de salida). Ahora `MODEL_TIMEOUT_MS = 60_000` y **sin** reintento del SDK (`services/claude.ts`; el peor caso hasta la disculpa es ~2 min 15 s, y el paciente recibe el «un momento» al minuto). **El «Todo en orden» de Monitoreo** ahora también cuenta las llamadas al modelo que fallaron o no se interpretaron en 24 h (antes solo miraba worker, cola y derivaciones sin avisar).
   **Pendiente relacionado:** la salida promedio es de ~1.400 tokens y el comentario del código dice «~200»: acortar el JSON de respuesta bajaría la latencia y casi la mitad del costo
   por mensaje (la salida cuesta US$ 10 por millón); revisarlo con datos de producción.
 - ~~Si falla la llamada a Claude, el paciente no recibe nada~~ **Resuelto
