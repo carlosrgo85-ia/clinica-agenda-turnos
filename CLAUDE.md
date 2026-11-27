@@ -434,8 +434,8 @@ meter lógica específica de un rubro en el código.
 
 ## La ubicación de la clínica
 
-Hay **dos** momentos en que se manda un mensaje aparte con la dirección y el
-link de Google Maps (`services/location.ts` → `buildLocationMessage()`):
+Hay **dos** momentos en que se manda la dirección y el
+link de Google Maps (desde el 2026-11-26 **dentro de la misma respuesta**, detrás de la confirmación y antes del aviso de privacidad, no como un mensaje aparte: dos mensajes seguidos molestaban igual que con la presentación) (`services/location.ts` → `buildLocationMessage()`):
 
 1. **Cuando el paciente la pide.** El modelo marca `pidio_ubicacion: true`
    en su respuesta y contesta en prosa; el código adjunta el mensaje con los
@@ -462,9 +462,8 @@ no sirve.
   exacta del negocio); si no, se busca por `Clinic.address`
   (`maps/search/?api=1&query=...`, con la dirección escapada — sin eso un
   `#` en la altura corta la URL). Sin ninguno de los dos no se manda nada.
-- Va **después** de la respuesta: lo que el paciente espera leer es la
-  confirmación. Si el envío falla, el turno ya está creado — se loguea y
-  nada más.
+- Va **después** del texto de la respuesta, en el mismo mensaje: lo que el paciente espera leer es la
+  confirmación. Si el envío falla, el turno ya está creado y el fallo se trata como el de cualquier respuesta (ya no hay un envío aparte que se pueda perder en silencio).
 - El texto es casi todo datos, sin verbos dirigidos al paciente: el prompt
   le exige al modelo el español del país de la clínica (tuteo o voseo), y
   esto no pasa por el modelo. Con frases hechas, el mensaje siguiente

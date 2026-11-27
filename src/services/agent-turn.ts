@@ -1077,7 +1077,9 @@ export async function runAgentTurn(
   // link al aviso de privacidad (desde el segundo). Ver `services/privacy-notice.ts`.
   const presentacion = await reclamarPresentacion({ clinic, patient, deps });
   const avisoDePrivacidad = await reclamarAvisoDePrivacidad({ clinic, patient, from, deps });
-  const textoAlPaciente = [presentacion, agentResponse.respuesta_al_paciente, avisoDePrivacidad]
+  // La dirección también va en la misma respuesta (2026-11-26: salía como un segundo mensaje y molestaba igual): detrás de la
+  // confirmación, que es lo que el paciente espera leer, y antes del aviso de privacidad.
+  const textoAlPaciente = [presentacion, agentResponse.respuesta_al_paciente, mensajeDeUbicacion, avisoDePrivacidad]
     .filter((parte): parte is string => Boolean(parte))
     .join("\n\n");
 
@@ -1102,23 +1104,6 @@ export async function runAgentTurn(
   ] as const) {
     if (!enviado) continue;
     await recordSystemAudit({ origin: "whatsapp", clinicId: clinic.id, action, resourceType: "patient", resourceId: patient.id });
-  }
-
-  // Va después de la respuesta y no antes: la confirmación del turno es lo
-  // que el paciente está esperando leer, la dirección es el complemento. Si
-  // falla, el turno ya está creado y confirmado — se loguea y nada más.
-  if (mensajeDeUbicacion) {
-    try {
-      await appendConversationMessage({
-        clinicId: clinic.id,
-        patientPhone: from,
-        role: "assistant",
-        content: mensajeDeUbicacion,
-      });
-      await deps.send(clinicWhatsAppCreds(clinic), from, mensajeDeUbicacion);
-    } catch (error) {
-      console.error(`No se pudo enviar la ubicación de la clínica ${clinic.id}:`, error);
-    }
   }
 }
 

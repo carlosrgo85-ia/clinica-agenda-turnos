@@ -1146,11 +1146,11 @@ describe("ubicación en el primer turno", () => {
 
     await runAgentTurn({ clinic: conDatos, patient, from: patient.phone, text: "Sí, las 9" }, deps);
 
-    expect(llamadas.enviados).toHaveLength(2);
-    // Segundo, no primero: lo que el paciente espera leer es la confirmación.
-    expect(llamadas.enviados[0]).toBe("Listo, quedó agendado.");
-    expect(llamadas.enviados[1]).toContain("Av. Siempreviva 742");
-    expect(llamadas.enviados[1]).toContain("https://www.google.com/maps/search/");
+    // Un solo mensaje: la confirmación primero (es lo que el paciente espera leer) y la dirección detrás.
+    expect(llamadas.enviados).toHaveLength(1);
+    expect(llamadas.enviados[0].startsWith("Listo, quedó agendado.")).toBe(true);
+    expect(llamadas.enviados[0]).toContain("Av. Siempreviva 742");
+    expect(llamadas.enviados[0]).toContain("https://www.google.com/maps/search/");
   });
 
   it("no la manda si el paciente ya tenía un turno", async () => {
@@ -1201,9 +1201,9 @@ describe("ubicación en el primer turno", () => {
       deps
     );
 
-    expect(llamadas.enviados).toHaveLength(2);
-    expect(llamadas.enviados[1]).toContain("Av. Siempreviva 742");
-    expect(llamadas.enviados[1]).toContain("https://www.google.com/maps/search/");
+    expect(llamadas.enviados).toHaveLength(1);
+    expect(llamadas.enviados[0].startsWith("Estamos en Av. Siempreviva 742.")).toBe(true);
+    expect(llamadas.enviados[0]).toContain("https://www.google.com/maps/search/");
   });
 
   it("no la duplica si además es su primer turno", async () => {
@@ -1217,7 +1217,8 @@ describe("ubicación en el primer turno", () => {
     await runAgentTurn({ clinic: conDatos, patient, from: patient.phone, text: "Sí, las 9" }, deps);
 
     // Una sola vez, no dos.
-    expect(llamadas.enviados).toHaveLength(2);
+    expect(llamadas.enviados).toHaveLength(1);
+    expect(llamadas.enviados[0].split("https://www.google.com/maps/search/")).toHaveLength(2);
   });
 
   it("no manda nada si la pide y la clínica no la tiene cargada", async () => {
@@ -1242,8 +1243,8 @@ describe("ubicación en el primer turno", () => {
       where: { clinicId: clinic.id },
       orderBy: { createdAt: "asc" },
     });
-    expect(mensajes.map((m) => m.role)).toEqual(["patient", "assistant", "assistant"]);
-    expect(mensajes[2].content).toContain("Av. Siempreviva 742");
+    expect(mensajes.map((m) => m.role)).toEqual(["patient", "assistant"]);
+    expect(mensajes[1].content).toContain("Av. Siempreviva 742");
   });
 });
 
