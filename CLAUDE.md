@@ -3027,6 +3027,24 @@ esperándola. Si falla, el turno ya está creado y es válido — se devuelve
 Decidido: primero se pasa el agente de WhatsApp a producción con una clínica interesada; lo siguiente se agrega después
 y **no bloquea la salida**. Ninguno está diseñado todavía; lo anotado son los puntos a resolver al empezar.
 
+- **Cotizar MÁS IVA en lugar de «IVA incluido» (decidido el 2026-11-27).** Los términos publicados dicen que los precios incluyen el IVA; se cambian a «más IVA»
+  (mejora el ingreso neto sin subir el precio que se ve, y es lo habitual en la competencia). **Se ajusta cuando Google apruebe la verificación**, no antes: cambiar los
+  términos durante la revisión puede retrasarla. Al hacerlo: versión 1.1 de `docs/legal/terminos-de-servicio.md` y regenerar `public/site/terminos.html`
+  (`npx tsx scripts/build-site.ts`), y que `Plan` / `PlanPrice` / la pantalla de membresía dejen claro que el monto es **sin IVA** (hoy no lo dicen). Confirmar con el
+  contador la factura (CFDI), el IVA trasladado y que los clientes son empresas o personas con actividad (el consumidor final sí exige el IVA incluido). Ver `docs/legal/pendientes-antes-de-publicar.md`, 3 quinquies.
+- **Descuento por pago anual: solo cuando exista el cobro automático (anotado el 2026-11-27).** Hoy no hay pasarela ni domiciliación (`payments.ts` es un stub), así
+  que un anual sería cobrar a mano y reembolsar a mano si la clínica se va. No ofrecerlo hasta tener: cobro automático, qué pasa con el reembolso o el prorrateo al cambiar de plan o
+  darse de baja, y la factura anual. Al hacerlo, `BillingPeriod` anual en `PlanPrice` ya existe: falta el cobro, no el modelo de precios.
+- **Evaluar Meta Tech Provider + Embedded Signup para que cada clínica conecte su WhatsApp desde Pontic (anotado el 2026-11-27, sin diseñar).** Hoy el alta es manual:
+  alguien crea el WABA, el token y el número y los carga en el detalle de la clínica. Con **Embedded Signup** la clínica inicia sesión con Meta dentro de Pontic, crea o enlaza su
+  WABA y Pontic recibe el token sin que nadie lo copie. Requisitos (según guías de terceros y la documentación de Meta, **a verificar contra la fuente vigente**): ser **Tech
+  Provider** (o Solution Partner), **verificar el negocio** del proveedor en Meta, **App Review** con acceso avanzado a `whatsapp_business_messaging` y `whatsapp_business_management`
+  (video de la app mandando mensajes y gestionando plantillas), autenticación en dos pasos, webhooks y registro de sesión; hay un tope de clientes nuevos por semana. **Choca con la decisión de pagar
+  nosotros los mensajes**: como Tech Provider, cada cliente agrega su propio método de pago y **Meta le cobra directamente a él**; para que el proveedor pague y recupere el costo hace falta
+  ser **Solution Partner con línea de crédito** o usar una BSP que preste la suya, y entonces el proveedor responde por todo el gasto de las clínicas (y si una clínica desenlaza su WABA, Meta
+  bloquea el envío). Decidir entre: (a) seguir con el alta manual y poner nuestro pago en cada WABA (¿Meta lo permite en un WABA ajeno? verificarlo), (b) Tech Provider y que cada clínica pague a Meta
+  (cambiar los términos, que hoy dicen eso), o (c) Solution Partner / BSP. Interacciona con las plantillas (se crean por WABA, ver «Plantillas de WhatsApp») y con la verificación de Google
+  (otra revisión aparte, no tocar la de Google mientras corre). Es lo que más escala el alta de clínicas después del piloto.
 - **PRIORIDAD ALTA, apenas se esté en producción: el proveedor paga los mensajes de WhatsApp y los recupera con la membresía; hacen falta topes y cobro de
   excedentes (decidido el 2026-11-26, sin diseñar).** Carlos pondrá **su método de pago en el WABA de cada clínica** (Meta le cobra a él) y se lo cobra a la clínica dentro
   de la membresía, porque es más fácil para la clínica. Consecuencia: **el riesgo del consumo es nuestro**. Una clínica que manda muchos mensajes (sobre todo Marketing:
