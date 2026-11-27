@@ -3066,6 +3066,17 @@ y **no bloquea la salida**. Ninguno está diseñado todavía; lo anotado son los
 - **Mensajes de Facebook (Messenger).** Plan aparte, mismo problema de identidad que Instagram; conviene resolver los dos canales
   con una sola abstracción de "canal" en vez de dos caminos paralelos. `Clinic` ya guarda los links de redes solo como referencia
   (sin credenciales): esto necesitaría credenciales cifradas como el token de WhatsApp.
+- **Notas de voz de WhatsApp: hoy se contestan con un aviso fijo; falta transcribirlas (anotado el 2026-11-27).** Antes el webhook descartaba todo lo que no fuera texto y el paciente
+  quedaba en visto. Ahora `services/non-text-reply.ts` contesta (sin pasar por el modelo, **sin descargar ni enviar el audio a nadie**): «Por ahora no puedo escuchar notas de voz. ¿Me lo
+  podría escribir?» para audios, y el equivalente para imágenes, videos y documentos; no contesta reacciones, stickers ni mensajes del sistema; no repite el aviso dentro de 10 minutos y lo
+  deja en el historial. **Para transcribir de verdad** (WhatsApp manda un `audio` con el id del archivo; se descarga con el token de la clínica, la URL caduca en minutos; se pasa a un
+  servicio de voz a texto; el texto entra a la misma cola y el asistente lo trata como escrito; se descarta el audio y se guarda solo la transcripción marcada como tal; el asistente repite lo
+  que entendió antes de agendar), hay que decidir: **proveedor** (recomendado: **Google Cloud Speech-to-Text v2**, es-MX: su documentación oficial dice que por defecto no registra el audio ni
+  la transcripción si no se activa el registro de datos; ~US$ 0,016 por minuto, o sea ~US$ 0,005 por una nota de 20 s; segunda opción **OpenAI `gpt-4o-transcribe`**, ~US$ 0,006 por minuto, pero
+  su retención hay que confirmarla en la página oficial de OpenAI; **Deepgram** se descarta hasta verificar su retención: las fuentes se contradicen), **`docs/legal/`** (un proveedor
+  nuevo que recibe la voz del paciente, que puede traer datos de salud: política de privacidad y términos; **no tocar el texto público mientras Google revisa la app**: publicarlo junto con la
+  versión 1.1), **función de plan** (`PLAN_FEATURES`) y **costo** (entrada nueva en `config/cost-catalog.ts` y en Costos, por minuto), y qué hacer con audios ilegibles o muy largos.
+  Verificar siempre las condiciones y precios en la página oficial del proveedor antes de contratar.
 - **Atender llamadas de voz.** Plan aparte. Requiere voz a texto y texto a voz, latencia baja y un proveedor de telefonía; el
   asistente actual está pensado para texto (respuestas con listas, varios mensajes, links). Evaluar costo por minuto y
   reflejarlo en "Costos" (`config/cost-catalog.ts`).

@@ -11,6 +11,7 @@ import {
   joinBatch,
   sleep,
 } from "../services/inbound-queue";
+import { replyToNonTextMessage, sendFor } from "../services/non-text-reply";
 import { describeError, recordSystemEvent, SYSTEM_EVENT_KINDS } from "../services/system-events";
 
 export const webhookRouter = Router();
@@ -52,10 +53,23 @@ webhookRouter.post("/", async (req, res) => {
     })
   );
 
-  if (!message || message.type !== "text") return;
+  if (!message) return;
 
   const phoneNumberId: string | undefined = value?.metadata?.phone_number_id;
   if (!phoneNumberId) return;
+
+  // Una nota de voz, una imagen o un archivo: no se leen, pero tampoco se deja al paciente en visto (se le pide que escriba).
+  // `replyToNonTextMessage` ignora los tipos que no piden nada (reacciones, stickers) y nunca lanza.
+  if (message.type !== "text") {
+    const clinicDelMensaje = await findClinicByPhoneNumberId(phoneNumberId);
+    if (clinicDelMensaje?.active) {
+      await replyToNonTextMessage(
+        { clinicId: clinicDelMensaje.id, from: message.from, type: message.type },
+        { send: sendFor(clinicDelMensaje, message.from) }
+      );
+    }
+    return;
+  }
 
   const clinic = await findClinicByPhoneNumberId(phoneNumberId);
   if (!clinic || !clinic.active) {
