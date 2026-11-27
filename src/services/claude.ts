@@ -226,6 +226,8 @@ function localeDe(clinic: Pick<Clinic, "country">): string {
 
 /** El modelo con el que habla el asistente. */
 const MODEL = "claude-sonnet-5";
+/** Cuánto se espera cada intento de una llamada al modelo antes de cortarlo. */
+export const MODEL_TIMEOUT_MS = 45_000;
 
 /** Lo mínimo del cliente de Anthropic que se usa: permite probar con uno falso. */
 type AnthropicLike = { messages: { create: Anthropic["messages"]["create"] } };
@@ -303,7 +305,12 @@ ${params.patientMessage}
       },
       // El default del SDK son 10 minutos: una eternidad para alguien esperando
       // una respuesta por WhatsApp, y encima hay dos llamadas por mensaje.
-      { timeout: 20_000 }
+      // **Pero 20 s era poco** (2026-11-27): con la respuesta de ~1.400 tokens a ~90 tokens/s una llamada normal
+      // tarda 10 a 35 s (p50 10 s, p90 35 s en la base de desarrollo), así que se cortaba una de cada tres a
+      // mitad de camino y el SDK la reintentaba desde cero, hasta tres veces: dos minutos después el paciente
+      // recibía una disculpa («tuvimos un problema para procesar su mensaje») por una llamada que iba bien.
+      // Un solo reintento del SDK (el de la aplicación ya reintenta una vez más) y más margen por intento.
+      { timeout: MODEL_TIMEOUT_MS, maxRetries: 1 }
     )) as Anthropic.Message;
   } catch (error) {
     // La llamada falló (red, timeout, límite de la API): también queda registrada.
