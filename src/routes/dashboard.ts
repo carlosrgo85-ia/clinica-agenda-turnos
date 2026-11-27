@@ -2196,6 +2196,9 @@ dashboardRouter.get(
         whatsappPhone: p.whatsappPhone,
         notifyByEmail: p.notifyByEmail,
         notifyByWhatsapp: p.notifyByWhatsapp,
+        notifyOnCreate: p.notifyOnCreate,
+        notifyOnChange: p.notifyOnChange,
+        notifyOnCancel: p.notifyOnCancel,
         calendarColorId: p.calendarColorId,
         servicios: p.services.map((x) => ({ id: x.id, name: x.name, active: x.active })),
         turnosFuturos: turnos.professionals.get(p.id) ?? 0,
@@ -2267,6 +2270,9 @@ function contactoDelBody(b: Record<string, unknown>) {
     whatsappPhone?: string | null;
     notifyByEmail?: boolean;
     notifyByWhatsapp?: boolean;
+    notifyOnCreate?: boolean;
+    notifyOnChange?: boolean;
+    notifyOnCancel?: boolean;
     calendarColorId?: string | null;
   } = {};
 
@@ -2274,6 +2280,9 @@ function contactoDelBody(b: Record<string, unknown>) {
   if (b.whatsappPhone !== undefined) data.whatsappPhone = textoOpcional(b.whatsappPhone) ?? null;
   if (typeof b.notifyByEmail === "boolean") data.notifyByEmail = b.notifyByEmail;
   if (typeof b.notifyByWhatsapp === "boolean") data.notifyByWhatsapp = b.notifyByWhatsapp;
+  if (typeof b.notifyOnCreate === "boolean") data.notifyOnCreate = b.notifyOnCreate;
+  if (typeof b.notifyOnChange === "boolean") data.notifyOnChange = b.notifyOnChange;
+  if (typeof b.notifyOnCancel === "boolean") data.notifyOnCancel = b.notifyOnCancel;
   // Color en el calendario compartido: solo los 11 de Google; null/"" lo quita. Un valor raro se ignora.
   if (b.calendarColorId === null || b.calendarColorId === "") data.calendarColorId = null;
   else if (isValidEventColorId(b.calendarColorId)) data.calendarColorId = b.calendarColorId;

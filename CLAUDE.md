@@ -584,10 +584,28 @@ usando `name` solo: son internos, y quien los lee ya sabe de quién se trata.
 En el dashboard el título solo se muestra en "Recursos", que es donde se
 elige.
 
-### Avisarle al profesional que le asignaron un turno
+### Avisarle al profesional de sus citas: nuevas, cambios y cancelaciones
 
 Cada profesional puede tener `contactEmail` y `whatsappPhone`, con dos
 interruptores independientes (`notifyByEmail` / `notifyByWhatsapp`).
+**Qué tipo de aviso (2026-11-26)**: además del canal, cada profesional elige DE QUÉ quiere enterarse con tres casillas
+(`notifyOnCreate` citas nuevas, `notifyOnChange` cambios, `notifyOnCancel` cancelaciones; **arrancan prendidas**: sin canal no sale
+nada, y quien eligió un canal esperaba enterarse). **Sin ningún medio marcado no se le avisa nada.** Se editan en Recursos →
+profesional. Todo pasa por `notifyProfessionalOfAppointment({ evento })` (`agendada` | `modificada` | `cancelada`), que mira
+la preferencia; un valor ausente cuenta como prendido. Quién avisa qué:
+- **Agenda, mover o editar** (`updateAppointment`): mismo profesional y cambió el día, la hora, el espacio o el servicio → `modificada`;
+  cambió de profesional → `agendada` al nuevo y `cancelada` (con `reasignada`: «ya no es tuya») al anterior; si no cambió nada, nada.
+- **Agenda, cancelar** (`cancelAppointment`) y **cancelación del paciente por WhatsApp** (`agent-turn.ts`; en el chat de pruebas no sale) → `cancelada`.
+  Al profesional se le avisa de la cancelación aunque no se marque «Avisar al paciente»: son avisos distintos.
+- **Reprogramar por WhatsApp** (`booking.ts`): mismo profesional → UNA `modificada` (no una baja más una cita nueva); otro profesional → `cancelada` al anterior y `agendada` al nuevo.
+- **Mail**: la invitación del `.ics` se actualiza o se saca del calendario del profesional: misma `UID` (`<id>@pontic`) y `SEQUENCE` creciente
+  (segundos desde la época); la cancelación va con `METHOD:CANCEL` y `STATUS:CANCELLED`. **WhatsApp**: dos plantillas nuevas en `CLINIC_TEMPLATES`,
+  `cita_modificada_profesional` y `cita_cancelada_profesional` (5 variables cada una, Utilidad); **hay que correr «Crear las que falten» en cada WABA y
+  esperar la aprobación de Meta**: hasta entonces ese aviso falla y queda en Monitoreo.
+- No cubre: avisar al profesional cuando lo único que cambia es su espacio habitual sin tocar nada más ni los bloqueos manuales; el aviso de WhatsApp
+  de una `modificada` no dice qué había antes (solo cómo quedó).
+
+
 **Los dos arrancan apagados**: mandarle mensajes a alguien que no los pidió
 es la forma más rápida de que la clínica apague el bot entero.
 

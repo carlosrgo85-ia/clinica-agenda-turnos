@@ -19,6 +19,7 @@ import { sendEscalationAlert } from "./email";
 import { formatAvailableSlots } from "../prompts/availability-context";
 import { describePeople, type PersonForPrompt } from "../prompts/appointments-context";
 import { buildLocationMessage } from "./location";
+import { notifyProfessionalOfAppointment } from "./professional-notifications";
 import { buildAssistantIntroMessage, buildPrivacyNoticeMessage } from "./privacy-notice";
 import { recordSystemAudit } from "./audit";
 import {
@@ -1041,6 +1042,27 @@ export async function runAgentTurn(
         }
       }
       await updatePatientStage(appointment.patientId, "cancelado", { origin: "whatsapp", motivo: "cancelacion" });
+      // Al profesional se le avisa de la baja (si lo pidió: canal y tipo de aviso). En el chat de pruebas no sale nada.
+      if (!deps.sandbox) {
+        try {
+          const sala = await prisma.room.findUnique({ where: { id: appointment.roomId }, select: { name: true } });
+          const persona = personasDelNumero.find((p) => p.id === appointment.patientId);
+          await notifyProfessionalOfAppointment({
+            clinic,
+            professional: appointment.professional,
+            evento: "cancelada",
+            appointmentId: appointment.id,
+            startTime: appointment.startTime,
+            endTime: appointment.endTime,
+            service: appointment.service,
+            patientName: persona?.name ?? from,
+            roomName: sala?.name ?? null,
+            preferredRoomUnavailable: false,
+          });
+        } catch (error) {
+          console.error(`No se pudo avisarle al profesional de la cancelación ${appointment.id}:`, error);
+        }
+      }
     }
   }
 

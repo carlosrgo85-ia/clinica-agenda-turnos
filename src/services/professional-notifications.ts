@@ -5,7 +5,8 @@ import { clinicWhatsAppCreds, sendTemplateMessage } from "./whatsapp";
 import { describeError, recordSystemEvent, SYSTEM_EVENT_KINDS } from "./system-events";
 
 /**
- * Le avisa al profesional que le asignaron un turno.
+ * Le avisa al profesional de lo que pasa con una cita suya: se la asignaron, cambió o se canceló.
+ * Cada profesional elige por qué canal (mail, WhatsApp o ninguno) y de qué tipo de aviso (nuevas, cambios, cancelaciones).
  *
  * Es distinto del espejo en Google Calendar: ese es pasivo —hay que abrir la
  * agenda para enterarse— y esto le llega.
@@ -20,16 +21,52 @@ import { describeError, recordSystemEvent, SYSTEM_EVENT_KINDS } from "./system-e
  * WhatsApp sale igual.
  */
 
-/** El nombre de la plantilla en el WABA de cada clínica. */
-export const PLANTILLA_CITA_PROFESIONAL = "cita_asignada_profesional";
+/** Qué le pasó a la cita, desde el punto de vista del profesional. */
+export type EventoDeTurno = "agendada" | "modificada" | "cancelada";
+
+/** Las plantillas, en el WABA de cada clínica, de cada tipo de aviso. */
+export const PLANTILLAS_PROFESIONAL: Record<EventoDeTurno, string> = {
+  agendada: "cita_asignada_profesional",
+  modificada: "cita_modificada_profesional",
+  cancelada: "cita_cancelada_profesional",
+};
+/** Compatibilidad: la de citas nuevas. */
+export const PLANTILLA_CITA_PROFESIONAL = PLANTILLAS_PROFESIONAL.agendada;
+
+/** La preferencia de cada profesional que decide si se le avisa de ese tipo de evento. */
+const PREFERENCIA: Record<EventoDeTurno, "notifyOnCreate" | "notifyOnChange" | "notifyOnCancel"> = {
+  agendada: "notifyOnCreate",
+  modificada: "notifyOnChange",
+  cancelada: "notifyOnCancel",
+};
+
+/** Lo que hay que leer de un profesional para avisarle (para los `select` de quien llama). */
+export const PROFESSIONAL_NOTIFY_SELECT = {
+  name: true,
+  contactEmail: true,
+  whatsappPhone: true,
+  notifyByEmail: true,
+  notifyByWhatsapp: true,
+  notifyOnCreate: true,
+  notifyOnChange: true,
+  notifyOnCancel: true,
+} as const;
+
+/** Lo que hay que saber de un profesional para avisarle. Las tres preferencias son opcionales: ausente = prendido. */
+export type ProfessionalNotifyFields = Pick<
+  Professional,
+  "name" | "contactEmail" | "whatsappPhone" | "notifyByEmail" | "notifyByWhatsapp"
+> &
+  Partial<Pick<Professional, "notifyOnCreate" | "notifyOnChange" | "notifyOnCancel">>;
 
 export interface NotificacionDeTurno {
   clinic: Clinic;
   appointmentId: string;
-  professional: Pick<
-    Professional,
-    "name" | "contactEmail" | "whatsappPhone" | "notifyByEmail" | "notifyByWhatsapp"
-  >;
+  professional: ProfessionalNotifyFields;
+  /** Qué le pasó a la cita. Default: recién agendada. */
+  evento?: EventoDeTurno;
+  /** Solo en `cancelada`: la cita no se canceló, pasó a otro profesional. */
+  reasignada?: boolean;
   startTime: Date;
   endTime: Date;
   service: string;
@@ -42,6 +79,11 @@ export async function notifyProfessionalOfAppointment(
   params: NotificacionDeTurno
 ): Promise<void> {
   const { clinic, professional } = params;
+  const evento = params.evento ?? "agendada";
+
+  // Sin canal elegido no sale nada, y si eligió canal pero no ese tipo de aviso tampoco. Un valor ausente cuenta como
+  // prendido (es el default de la base): solo un `false` explícito lo apaga.
+  if (professional[PREFERENCIA[evento]] === false) return;
 
   // La fecha y la hora, en hora de pared de la clínica. Nunca con métodos
   // locales de `Date`: eso usaría la zona del servidor.
@@ -66,6 +108,8 @@ export async function notifyProfessionalOfAppointment(
         patientName: params.patientName,
         roomName: params.roomName,
         preferredRoomUnavailable: params.preferredRoomUnavailable,
+        evento,
+        reasignada: params.reasignada,
       });
     } catch (error) {
       console.error(
@@ -82,14 +126,14 @@ export async function notifyProfessionalOfAppointment(
        * al bot, así que la ventana de 24hs está cerrada y Meta rechaza
        * cualquier mensaje que no sea una plantilla aprobada.
        *
-       * Mientras `cita_asignada_profesional` siga pendiente de aprobación en
+       * Mientras la plantilla de ese aviso (`PLANTILLAS_PROFESIONAL`) siga pendiente de aprobación en
        * el WABA de la clínica, esto va a fallar y quedar logueado. El turno
        * se crea igual — mismo criterio que el espejo en Calendar.
        */
       await sendTemplateMessage(
         clinicWhatsAppCreds(clinic),
         professional.whatsappPhone,
-        PLANTILLA_CITA_PROFESIONAL,
+        PLANTILLAS_PROFESIONAL[evento],
         "es",
         [professional.name, fecha, hora, params.service, params.patientName]
       );

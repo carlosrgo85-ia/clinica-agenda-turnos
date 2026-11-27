@@ -85,6 +85,27 @@ export const CLINIC_TEMPLATES: TemplateDefinition[] = [
     ejemplos: ["Dra. Gómez", "18/09/2026", "09:30", "consulta", "María López"],
   },
   {
+    name: "cita_modificada_profesional",
+    categoria: "UTILITY",
+    descripcion: "Aviso al profesional cuando una cita de su agenda cambia de día, hora, espacio o servicio",
+    // services/professional-notifications.ts → [profesional, paciente, servicio, fecha nueva, hora nueva].
+    // Con 5 variables hay que rodearlas de texto (Meta rechaza pocas palabras por variable): ver `cita_asignada_profesional`.
+    body:
+      "Hola {{1}}, te informamos que se modificó una cita de tu agenda. La cita del paciente {{2}} para el servicio de {{3}} " +
+      "ahora es el día {{4}} a las {{5}}. Puedes revisar los detalles en tu calendario o en el panel de la clínica.",
+    ejemplos: ["Dra. Gómez", "María López", "consulta", "18/09/2026", "09:30"],
+  },
+  {
+    name: "cita_cancelada_profesional",
+    categoria: "UTILITY",
+    descripcion: "Aviso al profesional cuando se cancela una cita de su agenda (o pasa a otro profesional)",
+    // services/professional-notifications.ts → [profesional, paciente, servicio, fecha, hora] (los de la cita que se dio de baja).
+    body:
+      "Hola {{1}}, te informamos que se canceló una cita de tu agenda. Era la cita del paciente {{2}} para el servicio de {{3}} " +
+      "del día {{4}} a las {{5}}. Puedes revisar la agenda actualizada en tu calendario o en el panel de la clínica.",
+    ejemplos: ["Dra. Gómez", "María López", "consulta", "18/09/2026", "09:30"],
+  },
+  {
     name: "cita_modificada",
     categoria: "UTILITY",
     descripcion: "Aviso al paciente cuando la clínica cambia el día, la hora o el profesional de su cita",

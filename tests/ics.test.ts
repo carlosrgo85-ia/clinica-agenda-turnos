@@ -108,4 +108,13 @@ describe("buildAppointmentIcs", () => {
     const desplegado = salida.replace(/\r\n /g, "");
     expect(desplegado).toContain(`DESCRIPTION:${"á".repeat(100)}`);
   });
+
+  it("una cancelación lleva METHOD:CANCEL, STATUS:CANCELLED y una versión mayor, con el mismo UID", () => {
+    const salida = ics({ method: "CANCEL", sequence: 1780000000 });
+    expect(salida).toContain("METHOD:CANCEL");
+    expect(salida).toContain("STATUS:CANCELLED");
+    expect(salida).toContain("SEQUENCE:1780000000");
+    expect(salida).toContain("UID:apt-123@pontic");
+    expect(ics()).toContain("SEQUENCE:0");
+  });
 });

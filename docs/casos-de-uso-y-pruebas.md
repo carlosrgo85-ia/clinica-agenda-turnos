@@ -359,6 +359,7 @@ match* de cada clínica: son la medida de cuántos falsos positivos hay.
 | AG-18 | Falla la llamada a Claude | Se reintenta una vez tras 15 s, avisando antes *"Dame un momento…"*. Si falla de nuevo: disculpa fija + derivación a una persona. Ambos quedan como eventos en Monitoreo. | Auto (`agent-turn.test.ts`) |
 | AG-19 | Se crea el turno con el espejo de Calendar caído | El turno existe igual; queda sin `googleEventId`. | Parcial |
 | AG-20 | El profesional tiene avisos activos | Le llega correo (con invitación `.ics`) y/o WhatsApp por plantilla; si uno falla, el otro sale y el turno queda. | Parcial (`ics.test.ts`) |
+| AG-21 | El profesional elige de qué avisar (nuevas, cambios, cancelaciones) y por qué canal (email, WhatsApp, ninguno) | Solo recibe los tipos elegidos y por los canales marcados; sin ningún canal no sale nada. Mover la hora = «modificada»; cambiar de profesional = «cancelada» al anterior y «nueva» al otro; cancelar (panel o paciente por WhatsApp) = «cancelada». El correo actualiza o saca la cita de su calendario (`.ics` con la misma UID). | Auto (`professional-notifications.test.ts`, `appointment-admin.test.ts`, `booking.test.ts`, `ics.test.ts`) + Manual con Meta (las plantillas `cita_modificada_profesional` y `cita_cancelada_profesional` aprobadas en el WABA) |
 
 ## MO — Cancelar y reprogramar
 

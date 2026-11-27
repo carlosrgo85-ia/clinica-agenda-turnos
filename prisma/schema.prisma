@@ -686,6 +686,11 @@ model Professional {
   // aprobada en el WABA de la clínica, el envío falla y se loguea — el turno
   // se crea igual. Mismo caso que `Clinic.urgencyNotifyPhone`.
   notifyByWhatsapp Boolean @default(false)
+  // De QUÉ le avisa (2026-11-26), además de por qué canal: citas nuevas, cambios (hora, día, espacio, servicio) y
+  // cancelaciones. Arrancan prendidos: el que ya eligió un canal esperaba enterarse, y sin canal no sale nada.
+  notifyOnCreate   Boolean @default(true)
+  notifyOnChange   Boolean @default(true)
+  notifyOnCancel   Boolean @default(true)
 
   appointments       Appointment[]
   calendarBlocks     CalendarBlock[]

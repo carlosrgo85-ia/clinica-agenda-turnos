@@ -27,6 +27,13 @@ export interface AppointmentIcsParams {
   organizerEmail: string;
   attendeeName: string;
   attendeeEmail: string;
+  /** `REQUEST` (default): invitación o actualización. `CANCEL`: la cita se dio de baja y el cliente la saca del calendario. */
+  method?: "REQUEST" | "CANCEL";
+  /**
+   * Versión del evento. 0 la primera vez; una actualización o una baja del MISMO turno tiene que llevar un número mayor
+   * o el cliente de correo la ignora. Se usa la hora en segundos (siempre crece).
+   */
+  sequence?: number;
   /** Inyectable para poder testear sin depender del reloj. */
   now?: Date;
 }
@@ -78,6 +85,7 @@ function foldLine(line: string): string {
 
 export function buildAppointmentIcs(params: AppointmentIcsParams): string {
   const ahora = params.now ?? new Date();
+  const metodo = params.method ?? "REQUEST";
 
   const lineas = [
     "BEGIN:VCALENDAR",
@@ -86,17 +94,16 @@ export function buildAppointmentIcs(params: AppointmentIcsParams): string {
     "CALSCALE:GREGORIAN",
     // REQUEST es lo que hace que se vea como invitación y no como un archivo
     // suelto. Con PUBLISH, Gmail lo muestra pero no ofrece agregarlo.
-    "METHOD:REQUEST",
+    `METHOD:${metodo}`,
     "BEGIN:VEVENT",
     `UID:${params.appointmentId}@pontic`,
     `DTSTAMP:${formatUtc(ahora)}`,
     `DTSTART:${formatUtc(params.start)}`,
     `DTEND:${formatUtc(params.end)}`,
-    // SEQUENCE 0 = primera versión del evento. Si alguna vez se manda una
-    // actualización del mismo turno, tiene que subir para que el cliente la
-    // acepte en lugar de ignorarla.
-    "SEQUENCE:0",
-    "STATUS:CONFIRMED",
+    // SEQUENCE 0 = primera versión del evento; una actualización o una baja del mismo turno tiene que subir
+    // para que el cliente la acepte en lugar de ignorarla.
+    `SEQUENCE:${params.sequence ?? 0}`,
+    `STATUS:${metodo === "CANCEL" ? "CANCELLED" : "CONFIRMED"}`,
     `SUMMARY:${escapeText(params.summary)}`,
     `DESCRIPTION:${escapeText(params.description)}`,
     ...(params.location ? [`LOCATION:${escapeText(params.location)}`] : []),

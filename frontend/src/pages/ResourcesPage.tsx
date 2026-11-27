@@ -53,6 +53,10 @@ interface Profesional {
   whatsappPhone: string | null;
   notifyByEmail: boolean;
   notifyByWhatsapp: boolean;
+  /** De qué avisa (además del canal): citas nuevas, cambios y cancelaciones. */
+  notifyOnCreate: boolean;
+  notifyOnChange: boolean;
+  notifyOnCancel: boolean;
   /** Color con el que marca sus citas en un calendario compartido (colorId de Google). */
   calendarColorId: string | null;
   /** Los servicios que realiza. Vacío = no hace nada: no se le agenda. */
@@ -664,6 +668,9 @@ function EditarProfesional(props: {
     whatsappPhone: props.profesional.whatsappPhone ?? "",
     notifyByEmail: props.profesional.notifyByEmail,
     notifyByWhatsapp: props.profesional.notifyByWhatsapp,
+    notifyOnCreate: props.profesional.notifyOnCreate,
+    notifyOnChange: props.profesional.notifyOnChange,
+    notifyOnCancel: props.profesional.notifyOnCancel,
     calendarColorId: props.profesional.calendarColorId ?? SIN_COLOR,
   });
 
@@ -683,6 +690,9 @@ function EditarProfesional(props: {
       whatsappPhone: form.whatsappPhone.trim(),
       notifyByEmail: form.notifyByEmail,
       notifyByWhatsapp: form.notifyByWhatsapp,
+      notifyOnCreate: form.notifyOnCreate,
+      notifyOnChange: form.notifyOnChange,
+      notifyOnCancel: form.notifyOnCancel,
       calendarColorId: form.calendarColorId === SIN_COLOR ? null : form.calendarColorId,
     });
   }
@@ -815,9 +825,10 @@ function EditarProfesional(props: {
             </p>
           </div>
 
-          <h4>Avisos de citas nuevas</h4>
+          <h4>Avisos de sus citas</h4>
           <p className="muted" style={{ marginTop: -8, fontSize: "0.85em" }}>
-            Opcionales y apagados por default. Sirven para enterarse sin tener que mirar la agenda.
+            Opcionales y apagados por default. Sirven para enterarse sin tener que mirar la agenda. Sin ningún medio marcado no
+            se le avisa nada.
           </p>
 
           <div className="field">
@@ -834,7 +845,7 @@ function EditarProfesional(props: {
                 checked={form.notifyByEmail}
                 onCheckedChange={(v) => setForm((f) => ({ ...f, notifyByEmail: v === true }))}
               />
-              <Label htmlFor="edit-notif-email">Avisarle por email cuando le asignen una cita</Label>
+              <Label htmlFor="edit-notif-email">Avisarle por email</Label>
             </div>
           </div>
 
@@ -852,16 +863,32 @@ function EditarProfesional(props: {
                 checked={form.notifyByWhatsapp}
                 onCheckedChange={(v) => setForm((f) => ({ ...f, notifyByWhatsapp: v === true }))}
               />
-              <Label htmlFor="edit-notif-wsp">
-                Avisarle por WhatsApp cuando le asignen una cita
-              </Label>
+              <Label htmlFor="edit-notif-wsp">Avisarle por WhatsApp</Label>
             </div>
             <p className="muted" style={{ fontSize: "0.85em", marginTop: 4 }}>
-              Necesita que Meta apruebe la plantilla <code>cita_asignada_profesional</code> en el
-              WhatsApp de la clínica — se crea sola al dar de alta, pero queda pendiente de
-              aprobación. Hasta entonces el aviso no llega (la cita se crea igual). El estado se
-              consulta en Clínicas → Plantillas.
+              Necesita que Meta apruebe en el WhatsApp de la clínica las plantillas{" "}
+              <code>cita_asignada_profesional</code>, <code>cita_modificada_profesional</code> y{" "}
+              <code>cita_cancelada_profesional</code>. Se crean con «Crear las que falten» en el detalle de la clínica y
+              quedan pendientes hasta que Meta las apruebe; mientras tanto el aviso no llega (la cita se crea igual).
             </p>
+          </div>
+
+          <div className="field">
+            <Label>Avisarle de</Label>
+            {[
+              { key: "notifyOnCreate", label: "Citas nuevas" },
+              { key: "notifyOnChange", label: "Cambios (día, hora, espacio, servicio o profesional)" },
+              { key: "notifyOnCancel", label: "Cancelaciones" },
+            ].map((t) => (
+              <div className="checkbox-field" style={{ marginTop: 6 }} key={t.key}>
+                <Checkbox
+                  id={`edit-${t.key}`}
+                  checked={form[t.key as "notifyOnCreate" | "notifyOnChange" | "notifyOnCancel"]}
+                  onCheckedChange={(v) => setForm((f) => ({ ...f, [t.key]: v === true }))}
+                />
+                <Label htmlFor={`edit-${t.key}`}>{t.label}</Label>
+              </div>
+            ))}
           </div>
 
           <DialogFooter>

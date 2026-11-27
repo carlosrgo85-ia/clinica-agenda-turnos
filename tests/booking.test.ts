@@ -1,6 +1,14 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Clinic, Patient } from "@prisma/client";
 import { prisma } from "../src/db/client";
+
+const avisos = vi.hoisted(() => ({ llamadas: [] as Array<{ evento: string; profesional: string; reasignada?: boolean }> }));
+vi.mock("../src/services/professional-notifications", async (original) => ({
+  ...(await original<typeof import("../src/services/professional-notifications")>()),
+  notifyProfessionalOfAppointment: async (p: { evento?: string; professional: { name: string }; reasignada?: boolean }) => {
+    avisos.llamadas.push({ evento: p.evento ?? "agendada", profesional: p.professional.name, reasignada: p.reasignada });
+  },
+}));
 import { encryptToken } from "../src/services/crypto";
 import { createAppointmentFromRequest } from "../src/services/booking";
 
@@ -442,6 +450,36 @@ describe("reprogramar (replaceAppointmentId)", () => {
       where: { clinicId: fixture.clinic.id, status: "confirmado" },
     });
     expect(vigentes).toBe(1);
+  });
+
+  it("avisos al profesional: con el mismo profesional UNA sola 'modificada'; con otro, 'cancelada' al anterior y 'agendada' al nuevo", async () => {
+    avisos.llamadas.length = 0;
+    const original = await pedido({ requestedProfessionalId: fixture.professionalIds[0] });
+    expect(original.ok).toBe(true);
+    if (!original.ok) return;
+    expect(avisos.llamadas.map((a) => a.evento)).toEqual(["agendada"]);
+
+    avisos.llamadas.length = 0;
+    const movida = await pedido({
+      requestedTime: "12:00",
+      requestedProfessionalId: fixture.professionalIds[0],
+      replaceAppointmentId: original.appointment.id,
+    });
+    expect(movida.ok).toBe(true);
+    if (!movida.ok) return;
+    expect(avisos.llamadas.map((a) => a.evento)).toEqual(["modificada"]);
+
+    avisos.llamadas.length = 0;
+    const aOtro = await pedido({
+      requestedTime: "13:00",
+      requestedProfessionalId: fixture.professionalIds[1],
+      replaceAppointmentId: movida.appointment.id,
+    });
+    expect(aOtro.ok).toBe(true);
+    expect(avisos.llamadas.map((a) => [a.evento, a.reasignada])).toEqual([
+      ["cancelada", true],
+      ["agendada", undefined],
+    ]);
   });
 
   it("si el horario nuevo no se puede, la cita vieja SIGUE vigente (la transacción se revierte)", async () => {

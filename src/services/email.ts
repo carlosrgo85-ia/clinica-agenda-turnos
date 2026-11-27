@@ -453,11 +453,24 @@ export async function sendProfessionalAppointmentEmail(params: {
   roomName: string | null;
   /** Le tocó un espacio que no es el suyo porque el habitual estaba ocupado. */
   preferredRoomUnavailable: boolean;
+  /** Qué le pasó a la cita. Default: recién agendada. */
+  evento?: "agendada" | "modificada" | "cancelada";
+  /** Solo en `cancelada`: la cita pasó a otro profesional (no se canceló, ya no es suya). */
+  reasignada?: boolean;
 }): Promise<void> {
+  const evento = params.evento ?? "agendada";
+  const titulo = { agendada: "Cita nueva", modificada: "Cita modificada", cancelada: "Cita cancelada" }[evento];
+  const intro = {
+    agendada: "te asignamos esta cita:",
+    modificada: "esta cita de tu agenda cambió. Quedó así:",
+    cancelada: params.reasignada
+      ? "esta cita ya no es tuya, se reasignó a otro profesional:"
+      : "se canceló esta cita de tu agenda:",
+  }[evento];
   const html = `
-    <h2>Cita nueva — ${escapeHtml(params.clinicName)}</h2>
+    <h2>${titulo} — ${escapeHtml(params.clinicName)}</h2>
 
-    <p>Hola ${escapeHtml(params.professionalName)}, te asignamos esta cita:</p>
+    <p>Hola ${escapeHtml(params.professionalName)}, ${intro}</p>
 
     <table>
       <tr><td><strong>Fecha</strong></td><td>${escapeHtml(params.fecha)}</td></tr>
@@ -499,17 +512,21 @@ export async function sendProfessionalAppointmentEmail(params: {
     organizerEmail: params.clinicEmail,
     attendeeName: params.professionalName,
     attendeeEmail: params.to,
+    // Una actualización o una baja del mismo turno lleva el mismo UID y una versión mayor: así el calendario del
+    // profesional mueve o saca la cita en lugar de dejar la vieja.
+    method: evento === "cancelada" ? "CANCEL" : "REQUEST",
+    sequence: evento === "agendada" ? 0 : Math.floor(Date.now() / 1000),
   });
 
   await transporter.sendMail({
     from: env.smtp.user,
     to: params.to,
-    subject: `Cita nueva: ${params.fecha} ${params.hora} — ${params.clinicName}`,
+    subject: `${titulo}: ${params.fecha} ${params.hora} — ${params.clinicName}`,
     html,
     // `icalEvent` de nodemailer arma las cabeceras que hacen que se vea como
     // invitación (text/calendar; method=REQUEST). Adjuntarlo como un archivo
     // común lo dejaría como un adjunto que hay que abrir a mano.
-    icalEvent: { method: "REQUEST", filename: "turno.ics", content: ics },
+    icalEvent: { method: evento === "cancelada" ? "CANCEL" : "REQUEST", filename: "turno.ics", content: ics },
   });
 }
 

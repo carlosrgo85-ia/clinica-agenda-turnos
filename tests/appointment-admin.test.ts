@@ -1,6 +1,19 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Weekday } from "@prisma/client";
 import { prisma } from "../src/db/client";
+
+const avisosAlProfesional = vi.hoisted(() => ({
+  llamadas: [] as Array<{ evento: string; profesional: string; reasignada?: boolean }>,
+}));
+vi.mock("../src/services/professional-notifications", async (original) => ({
+  ...(await original<typeof import("../src/services/professional-notifications")>()),
+  notifyProfessionalOfAppointment: async (p: { evento?: string; professional: { name: string }; reasignada?: boolean }) => {
+    avisosAlProfesional.llamadas.push({ evento: p.evento ?? "agendada", profesional: p.professional.name, reasignada: p.reasignada });
+  },
+}));
+beforeEach(() => {
+  avisosAlProfesional.llamadas.length = 0;
+});
 import { encryptToken } from "../src/services/crypto";
 import { CLINIC_CALENDAR_INCLUDE } from "../src/services/calendar";
 import type { ClinicWithCalendarAccount } from "../src/repositories/clinics.repository";
@@ -335,6 +348,28 @@ describe("mover y editar una cita", () => {
     expect(r.appointment.id).toBe(creada.appointment.id);
   });
 
+  it("avisos al profesional: mover la hora = modificada; cambiar de profesional = cancelada al anterior y nueva al otro; sin cambios, nada", async () => {
+    const e = await crearEscenario();
+    const c = await crear(e, { roomId: e.sala1.id });
+    if (!c.ok) throw new Error("fixture");
+    const id = c.appointment.id;
+    avisosAlProfesional.llamadas.length = 0;
+
+    await updateAppointment({ clinic: e.clinic, userId: "u", appointmentId: id, changes: { time: "11:00" }, now: ANTES });
+    expect(avisosAlProfesional.llamadas).toEqual([{ evento: "modificada", profesional: "Gómez", reasignada: undefined }]);
+
+    avisosAlProfesional.llamadas.length = 0;
+    await updateAppointment({ clinic: e.clinic, userId: "u", appointmentId: id, changes: { professionalId: e.ruiz.id }, now: ANTES });
+    expect(avisosAlProfesional.llamadas).toEqual([
+      { evento: "agendada", profesional: "Ruiz", reasignada: undefined },
+      { evento: "cancelada", profesional: "Gómez", reasignada: true },
+    ]);
+
+    avisosAlProfesional.llamadas.length = 0;
+    await updateAppointment({ clinic: e.clinic, userId: "u", appointmentId: id, changes: { time: "11:00" }, now: ANTES });
+    expect(avisosAlProfesional.llamadas).toEqual([]);
+  });
+
   it("mover la cita de hora borra las marcas de recordatorio (otro horario = otro aviso); editar otra cosa no", async () => {
     const e = await crearEscenario();
     const creada = await crear(e);
@@ -556,6 +591,15 @@ describe("cancelar una cita", () => {
     expect(mensajes[0].role).toBe("assistant");
     expect(mensajes[0].content).toContain("fue cancelada");
     await prisma.conversationMessage.deleteMany({ where: { clinicId: e.clinic.id } });
+  });
+
+  it("al profesional se le avisa de la cancelación", async () => {
+    const e = await crearEscenario();
+    const c = await crear(e, { roomId: e.sala1.id });
+    if (!c.ok) throw new Error("fixture");
+    avisosAlProfesional.llamadas.length = 0;
+    await cancelAppointment({ clinic: e.clinic, userId: "u", appointmentId: c.appointment.id });
+    expect(avisosAlProfesional.llamadas).toEqual([{ evento: "cancelada", profesional: "Gómez", reasignada: undefined }]);
   });
 
   it("no cancela la cita de otra clínica", async () => {

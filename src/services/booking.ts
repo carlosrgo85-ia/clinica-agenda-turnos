@@ -13,6 +13,7 @@ import type {
 import { prisma } from "../db/client";
 import { checkAvailability, type UnavailableReason } from "./availability";
 import { notifyProfessionalOfAppointment } from "./professional-notifications";
+import type { ProfessionalNotifyFields } from "./professional-notifications";
 import { resolveProfessionalForBooking } from "./booking-rules";
 import { resolveServiceForRequest } from "./catalog";
 import {
@@ -196,13 +197,12 @@ export async function createAppointmentFromRequest(params: {
       id: string;
       googleEventId: string | null;
       professional: Parameters<typeof resolveCalendarTargetForProfessional>[1];
+      /** Para avisarle al profesional de la cita que se movió (cada uno elige canal y tipo de aviso). */
+      aviso: { professional: ProfessionalNotifyFields; professionalId: string; startTime: Date; endTime: Date; service: string; roomId: string };
     } | null;
     professionalName: string;
     /** Se lee dentro de la transacción y se usa fuera, para avisarle del turno. */
-    professional: Pick<
-      Professional,
-      "name" | "contactEmail" | "whatsappPhone" | "notifyByEmail" | "notifyByWhatsapp"
-    >;
+    professional: ProfessionalNotifyFields;
   };
 
   try {
@@ -215,6 +215,7 @@ export async function createAppointmentFromRequest(params: {
           id: string;
           googleEventId: string | null;
           professional: Parameters<typeof resolveCalendarTargetForProfessional>[1];
+          aviso: { professional: ProfessionalNotifyFields; professionalId: string; startTime: Date; endTime: Date; service: string; roomId: string };
           /** Para el evento de reagendado: de qué hora y con quién se movió. */
           startTime: Date;
           professionalId: string;
@@ -240,6 +241,14 @@ export async function createAppointmentFromRequest(params: {
             id: vieja.id,
             googleEventId: vieja.googleEventId,
             professional: vieja.professional,
+            aviso: {
+              professional: vieja.professional,
+              professionalId: vieja.professionalId,
+              startTime: vieja.startTime,
+              endTime: vieja.endTime,
+              service: vieja.service,
+              roomId: vieja.roomId,
+            },
             startTime: vieja.startTime,
             professionalId: vieja.professionalId,
           };
@@ -328,6 +337,9 @@ export async function createAppointmentFromRequest(params: {
             whatsappPhone: true,
             notifyByEmail: true,
             notifyByWhatsapp: true,
+            notifyOnCreate: true,
+            notifyOnChange: true,
+            notifyOnCancel: true,
           },
         });
         if (!professional) {
@@ -464,9 +476,31 @@ export async function createAppointmentFromRequest(params: {
     select: { name: true },
   });
 
+  // Al profesional: si es una reprogramación con el mismo profesional, UNA sola novedad ("modificada") y no una baja más una
+  // cita nueva; si cambió de profesional, al anterior se le avisa que ya no es suya y al nuevo que le apareció.
+  const reprogramada = created.replaced !== null;
+  const mismoProfesional = reprogramada && created.replaced!.aviso.professionalId === created.appointment.professionalId;
+  if (created.replaced && !mismoProfesional) {
+    const antes = created.replaced.aviso;
+    const salaAntes = await prisma.room.findUnique({ where: { id: antes.roomId }, select: { name: true } });
+    await notifyProfessionalOfAppointment({
+      clinic,
+      professional: antes.professional,
+      evento: "cancelada",
+      reasignada: true,
+      appointmentId: created.replaced.id,
+      startTime: antes.startTime,
+      endTime: antes.endTime,
+      service: antes.service,
+      patientName: patient.name ?? patient.phone,
+      roomName: salaAntes?.name ?? null,
+      preferredRoomUnavailable: false,
+    });
+  }
   await notifyProfessionalOfAppointment({
     clinic,
     professional: created.professional,
+    evento: mismoProfesional ? "modificada" : "agendada",
     appointmentId: created.appointment.id,
     startTime: created.appointment.startTime,
     endTime: created.appointment.endTime,

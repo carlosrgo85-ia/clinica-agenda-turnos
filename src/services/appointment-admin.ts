@@ -20,7 +20,7 @@ import {
 } from "./calendar";
 import { notifyPatientOfChange, type PatientNoticeResult } from "./patient-notifications";
 import { updatePatientStage } from "../repositories/patients.repository";
-import { notifyProfessionalOfAppointment } from "./professional-notifications";
+import { notifyProfessionalOfAppointment, PROFESSIONAL_NOTIFY_SELECT } from "./professional-notifications";
 import {
   addMinutes,
   clinicDateKey,
@@ -819,20 +819,57 @@ export async function updateAppointment(params: {
     });
   }
 
-  // Al profesional nuevo hay que avisarle: la cita le apareció en la agenda.
-  if (cambioElProfesional) {
+  // Al profesional hay que avisarle de lo que le pasa a su cita (cada uno elige canal y tipo de aviso):
+  // - cambió de profesional: al nuevo, que le apareció una cita; al anterior, que ya no es suya.
+  // - mismo profesional y cambió el día, la hora, el espacio o el servicio: que se modificó.
+  if (cambioElProfesional || cambioAlgoDelEvento) {
     const room = await prisma.room.findUnique({ where: { id: updated.roomId }, select: { name: true } });
-    await notifyProfessionalOfAppointment({
-      clinic,
-      professional,
-      appointmentId: updated.id,
-      startTime: updated.startTime,
-      endTime: updated.endTime,
-      service: updated.service,
-      patientName: actual.patient.name ?? actual.patient.phone,
-      roomName: room?.name ?? null,
-      preferredRoomUnavailable: updated.preferredRoomUnavailable,
-    });
+    const patientName = actual.patient.name ?? actual.patient.phone;
+    if (cambioElProfesional) {
+      await notifyProfessionalOfAppointment({
+        clinic,
+        professional,
+        appointmentId: updated.id,
+        startTime: updated.startTime,
+        endTime: updated.endTime,
+        service: updated.service,
+        patientName,
+        roomName: room?.name ?? null,
+        preferredRoomUnavailable: updated.preferredRoomUnavailable,
+      });
+      const anterior = await prisma.professional.findFirst({
+        where: { id: actual.professionalId, clinicId: clinic.id },
+        select: PROFESSIONAL_NOTIFY_SELECT,
+      });
+      if (anterior) {
+        await notifyProfessionalOfAppointment({
+          clinic,
+          professional: anterior,
+          evento: "cancelada",
+          reasignada: true,
+          appointmentId: actual.id,
+          startTime: actual.startTime,
+          endTime: actual.endTime,
+          service: actual.service,
+          patientName,
+          roomName: null,
+          preferredRoomUnavailable: false,
+        });
+      }
+    } else {
+      await notifyProfessionalOfAppointment({
+        clinic,
+        professional,
+        evento: "modificada",
+        appointmentId: updated.id,
+        startTime: updated.startTime,
+        endTime: updated.endTime,
+        service: updated.service,
+        patientName,
+        roomName: room?.name ?? null,
+        preferredRoomUnavailable: updated.preferredRoomUnavailable,
+      });
+    }
   }
 
   let patientNotice: PatientNoticeResult | null = null;
@@ -868,7 +905,7 @@ export async function cancelAppointment(params: {
 
   const actual = await prisma.appointment.findFirst({
     where: { id: params.appointmentId, clinicId: clinic.id, status: "confirmado" },
-    include: { patient: true, professional: { select: { name: true } } },
+    include: { patient: true, professional: { select: PROFESSIONAL_NOTIFY_SELECT } },
   });
   if (!actual) return { ok: false, reason: "no_encontrado", message: HARD_FAILURE_MESSAGE.no_encontrado };
 
@@ -924,6 +961,21 @@ export async function cancelAppointment(params: {
   } catch (error) {
     console.error(`No se pudo actualizar la etapa del paciente al cancelar ${actual.id}:`, error);
   }
+
+  // Al profesional se le avisa siempre que lo haya pedido (canal y tipo de aviso): no depende de la casilla del paciente.
+  const sala = await prisma.room.findUnique({ where: { id: actual.roomId }, select: { name: true } });
+  await notifyProfessionalOfAppointment({
+    clinic,
+    professional: actual.professional,
+    evento: "cancelada",
+    appointmentId: actual.id,
+    startTime: actual.startTime,
+    endTime: actual.endTime,
+    service: actual.service,
+    patientName: actual.patient.name ?? actual.patient.phone,
+    roomName: sala?.name ?? null,
+    preferredRoomUnavailable: false,
+  });
 
   let patientNotice: PatientNoticeResult | null = null;
   if (params.notifyPatient) {
