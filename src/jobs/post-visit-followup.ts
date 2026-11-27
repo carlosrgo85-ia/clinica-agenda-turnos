@@ -5,6 +5,7 @@ import { clinicWhatsAppCreds, sendTemplateMessage } from "../services/whatsapp";
 import { PLAN_FEATURES } from "../config/plan-features";
 import { listActiveClinics } from "../repositories/clinics.repository";
 import { updatePatientStage } from "../repositories/patients.repository";
+import { rememberTemplateSent } from "../services/template-history";
 import { SANDBOX_PATIENT_FILTER } from "../services/sandbox-phone";
 
 const FOLLOW_UP_TEMPLATE_NAME = "seguimiento_post_consulta"; // debe existir y estar aprobada en Meta
@@ -80,13 +81,14 @@ export async function runPostVisitFollowUp(
 
           if (clinic.plan?.features.includes(PLAN_FEATURES.POST_VISIT_FOLLOWUP)) {
             try {
-              await sendTemplateMessage(
-                clinicWhatsAppCreds(clinic),
-                appt.patient.phone,
-                FOLLOW_UP_TEMPLATE_NAME,
-                "es",
-                [appt.patient.name ?? "paciente", clinic.name]
-              );
+              const parametros = [appt.patient.name ?? "paciente", clinic.name];
+              await sendTemplateMessage(clinicWhatsAppCreds(clinic), appt.patient.phone, FOLLOW_UP_TEMPLATE_NAME, "es", parametros);
+              await rememberTemplateSent({
+                clinicId: clinic.id,
+                patientPhone: appt.patient.phone,
+                templateName: FOLLOW_UP_TEMPLATE_NAME,
+                parameters: parametros,
+              });
             } catch (error) {
               await reportJobError(
                 "post-visit-followup",

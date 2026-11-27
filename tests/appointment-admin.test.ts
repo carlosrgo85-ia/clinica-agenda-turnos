@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Weekday } from "@prisma/client";
 import { prisma } from "../src/db/client";
 import { encryptToken } from "../src/services/crypto";
@@ -518,6 +518,44 @@ describe("cancelar una cita", () => {
 
     const de_nuevo = await cancelAppointment({ clinic: e.clinic, userId: "u", appointmentId: creada.appointment.id });
     expect(de_nuevo).toMatchObject({ ok: false, reason: "no_encontrado" });
+  });
+
+  it("si era su única cita vigente, la etapa del CRM pasa a cancelado; con otra cita vigente no cambia", async () => {
+    const e = await crearEscenario();
+    const uno = await crear(e, { roomId: e.sala1.id });
+    const dos = await crear(e, { time: "12:00", roomId: e.sala1.id });
+    if (!uno.ok || !dos.ok) throw new Error("fixture");
+    await prisma.patient.update({ where: { id: e.paciente.id }, data: { stage: "turno_agendado" } });
+
+    await cancelAppointment({ clinic: e.clinic, userId: "u", appointmentId: uno.appointment.id });
+    expect((await prisma.patient.findUniqueOrThrow({ where: { id: e.paciente.id } })).stage).toBe("turno_agendado");
+
+    await cancelAppointment({ clinic: e.clinic, userId: "u", appointmentId: dos.appointment.id });
+    expect((await prisma.patient.findUniqueOrThrow({ where: { id: e.paciente.id } })).stage).toBe("cancelado");
+  });
+
+  it("no pisa la etapa 'atendido' de quien cancela una cita futura", async () => {
+    const e = await crearEscenario();
+    const c = await crear(e, { roomId: e.sala1.id });
+    if (!c.ok) throw new Error("fixture");
+    await prisma.patient.update({ where: { id: e.paciente.id }, data: { stage: "atendido" } });
+    await cancelAppointment({ clinic: e.clinic, userId: "u", appointmentId: c.appointment.id });
+    expect((await prisma.patient.findUniqueOrThrow({ where: { id: e.paciente.id } })).stage).toBe("atendido");
+  });
+
+  it("el aviso de cancelación queda en el historial de la conversación (para que el asistente sepa a qué contesta)", async () => {
+    const e = await crearEscenario();
+    const c = await crear(e, { roomId: e.sala1.id });
+    if (!c.ok) throw new Error("fixture");
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, text: async () => "" })));
+    const r = await cancelAppointment({ clinic: e.clinic, userId: "u", appointmentId: c.appointment.id, notifyPatient: true });
+    vi.unstubAllGlobals();
+    expect(r).toMatchObject({ ok: true, patientNotice: { enviado: true } });
+    const mensajes = await prisma.conversationMessage.findMany({ where: { clinicId: e.clinic.id } });
+    expect(mensajes).toHaveLength(1);
+    expect(mensajes[0].role).toBe("assistant");
+    expect(mensajes[0].content).toContain("fue cancelada");
+    await prisma.conversationMessage.deleteMany({ where: { clinicId: e.clinic.id } });
   });
 
   it("no cancela la cita de otra clínica", async () => {

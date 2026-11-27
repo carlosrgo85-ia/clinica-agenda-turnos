@@ -93,6 +93,7 @@ beforeEach(() => {
 afterEach(async () => {
   for (const id of clinicIds) {
     await prisma.systemEvent.deleteMany({ where: { clinicId: id } });
+    await prisma.conversationMessage.deleteMany({ where: { clinicId: id } });
     await prisma.appointment.deleteMany({ where: { clinicId: id } });
     await prisma.patient.deleteMany({ where: { clinicId: id } });
     await prisma.room.deleteMany({ where: { clinicId: id } });

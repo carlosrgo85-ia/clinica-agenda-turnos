@@ -1786,6 +1786,8 @@ plantilla (`cita_modificada`, `cita_cancelada` en `CLINIC_TEMPLATES`;
 esperar que Meta las apruebe en cada WABA**. Si falla, el cambio ya está hecho: se
 le avisa a la asistente que lo comunique por otro medio.
 
+**Lo que se le manda al paciente por plantilla queda en el historial** (2026-11-26, `services/template-history.ts` → `rememberTemplateSent()`): el aviso de cita cancelada o modificada, el recordatorio de 24 h / 2 h y el seguimiento post-visita se guardan como mensaje del asistente. Antes no quedaban (solo el contacto por próxima cita y el seguimiento de campañas), así que el paciente respondía «¿por qué la cancelaron?» y el asistente contestaba que no había ninguna cancelación. Solo se guardan las plantillas del catálogo (`renderTemplateBody()`); **un job nuevo que mande una plantilla al paciente tiene que llamarla**. **Cancelar desde la Agenda** también mueve la etapa del CRM a `cancelado` (origen `panel`, motivo `cancelacion`) si era su única cita vigente y estaba en `turno_agendado` / `turno_confirmado`; no pisa `atendido`. Lo que **no** cubre: el asistente no conoce el motivo que escribió la clínica al cancelar (`cancelReason`); ante «¿por qué?» ve el aviso, no la razón.
+
 **Bloqueos manuales** (`CalendarBlock.source = manual`, con `title`): reunión,
 almuerzo, vacaciones; uno por profesional, frenan al asistente igual que uno
 importado. **`calendar-sync` solo reemplaza los `source: calendario`**: sin ese

@@ -1,6 +1,7 @@
 import type { Clinic, Patient } from "@prisma/client";
 import { clinicWhatsAppCreds, sendTemplateMessage } from "./whatsapp";
 import { clinicDateKey, formatWallTime } from "./time";
+import { rememberTemplateSent } from "./template-history";
 import { describeError, recordSystemEvent, SYSTEM_EVENT_KINDS } from "./system-events";
 
 /**
@@ -41,15 +42,13 @@ export async function notifyPatientOfChange(params: {
   const hora = formatWallTime(params.startTime, clinic.timezone);
 
   try {
-    await sendTemplateMessage(
-      clinicWhatsAppCreds(clinic),
-      patient.phone,
-      params.kind === "modificada" ? "cita_modificada" : "cita_cancelada",
-      "es",
+    const plantilla = params.kind === "modificada" ? "cita_modificada" : "cita_cancelada";
+    const parametros =
       params.kind === "modificada"
         ? [nombre, params.service, fecha, hora, params.professionalName]
-        : [nombre, params.service, fecha, hora, clinic.name]
-    );
+        : [nombre, params.service, fecha, hora, clinic.name];
+    await sendTemplateMessage(clinicWhatsAppCreds(clinic), patient.phone, plantilla, "es", parametros);
+    await rememberTemplateSent({ clinicId: clinic.id, patientPhone: patient.phone, templateName: plantilla, parameters: parametros });
     return { enviado: true };
   } catch (error) {
     console.error(

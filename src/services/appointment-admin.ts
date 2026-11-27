@@ -19,6 +19,7 @@ import {
   resolveCalendarTargetForProfessional,
 } from "./calendar";
 import { notifyPatientOfChange, type PatientNoticeResult } from "./patient-notifications";
+import { updatePatientStage } from "../repositories/patients.repository";
 import { notifyProfessionalOfAppointment } from "./professional-notifications";
 import {
   addMinutes,
@@ -908,6 +909,21 @@ export async function cancelAppointment(params: {
     professionalId: actual.professionalId,
     googleEventId: actual.googleEventId,
   });
+
+  // Si esa era su única cita vigente, la etapa del CRM pasa a "cancelado" (lo mismo que hace el asistente cuando cancela el
+  // paciente). Solo desde "cita agendada/confirmada": no se pisa "atendido". Con otra cita futura vigente no cambia nada.
+  try {
+    if (actual.patient.stage === "turno_agendado" || actual.patient.stage === "turno_confirmado") {
+      const otra = await prisma.appointment.count({
+        where: { clinicId: clinic.id, patientId: actual.patientId, status: "confirmado", startTime: { gt: new Date() } },
+      });
+      if (otra === 0) {
+        await updatePatientStage(actual.patientId, "cancelado", { origin: "panel", userId: params.userId, motivo: "cancelacion" });
+      }
+    }
+  } catch (error) {
+    console.error(`No se pudo actualizar la etapa del paciente al cancelar ${actual.id}:`, error);
+  }
 
   let patientNotice: PatientNoticeResult | null = null;
   if (params.notifyPatient) {

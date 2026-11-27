@@ -7,6 +7,7 @@ import {
 } from "../services/whatsapp";
 import { listActiveClinics } from "../repositories/clinics.repository";
 import { SANDBOX_PATIENT_FILTER } from "../services/sandbox-phone";
+import { rememberTemplateSent } from "../services/template-history";
 import { clinicDateKey, formatWallTime } from "../services/time";
 
 const HORA_MS = 3_600_000;
@@ -139,18 +140,14 @@ export async function sendRemindersForWindow(
     if (reclamo.count === 0) continue;
 
     try {
-      await sendTemplateMessage(
-        creds,
-        appt.patient.phone,
-        templateName,
-        "es",
-        [
-          appt.patient.name ?? "paciente",
-          reminderDate(appt.startTime, timezone),
-          formatWallTime(appt.startTime, timezone),
-          appt.service,
-        ]
-      );
+      const parametros = [
+        appt.patient.name ?? "paciente",
+        reminderDate(appt.startTime, timezone),
+        formatWallTime(appt.startTime, timezone),
+        appt.service,
+      ];
+      await sendTemplateMessage(creds, appt.patient.phone, templateName, "es", parametros);
+      await rememberTemplateSent({ clinicId: clinicId, patientPhone: appt.patient.phone, templateName, parameters: parametros });
       sent += 1;
     } catch (error) {
       failed += 1;
